@@ -1,4 +1,4 @@
-use crate::{display, wgpu::vertex};
+use crate::{display, graphics::vertex};
 
 struct NodeDisplay {
     node: super::Node,
