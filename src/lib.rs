@@ -1,4 +1,9 @@
 use std::io;
+use std::thread;
+
+use winit::event;
+use winit::event_loop;
+use winit::event_loop::EventLoopProxy;
 
 mod node;
 mod display;
@@ -7,12 +12,16 @@ mod graphics;
 const QUIT_COMMAND: &str = ":q";
 
 pub fn run() {
-    let graphics = graphics::Graphics::new();
-    
-    println!("Running node_simulator...");
-    help();
+    graphics::init();
+    let event_loop = graphics::get_event_loop();
+    let event_loop_proxy = event_loop.create_proxy();
 
-   read_input(); 
+    thread::spawn(|| {
+        println!("Running node_simulator...");
+        help();
+        read_input(event_loop_proxy); 
+    });
+    pollster::block_on(graphics::run(event_loop));
 }
 
 fn help() {
@@ -20,7 +29,7 @@ fn help() {
     println!("Enter :h for help, or :q to quit");
 }
 
-fn read_input() {
+fn read_input(event_loop_proxy: event_loop::EventLoopProxy<event::WindowEvent>) {
     loop {
         let mut input = String::new();
         io::stdin()
@@ -29,7 +38,10 @@ fn read_input() {
         let input = input.trim();
 
         match input {
-            QUIT_COMMAND => break,
+            QUIT_COMMAND => {
+                event_loop_proxy.send_event(event::WindowEvent::CloseRequested).ok();
+                break;
+            },
             ":h" => help(),
             _ => (),
         }
