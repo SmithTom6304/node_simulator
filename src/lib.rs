@@ -5,9 +5,12 @@ use winit::event;
 use winit::event_loop;
 use winit::event_loop::EventLoopProxy;
 
-mod node;
+use cgmath::prelude::*;
+
 mod display;
 mod graphics;
+mod node;
+mod node_collection;
 
 const QUIT_COMMAND: &str = ":q";
 
@@ -19,7 +22,7 @@ pub fn run() {
     thread::spawn(|| {
         println!("Running node_simulator...");
         help();
-        read_input(event_loop_proxy); 
+        read_input(event_loop_proxy);
     });
     pollster::block_on(graphics::run(event_loop));
 }
@@ -39,12 +42,13 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<event::WindowEvent>) 
 
         match input {
             QUIT_COMMAND => {
-                event_loop_proxy.send_event(event::WindowEvent::CloseRequested).ok();
+                event_loop_proxy
+                    .send_event(event::WindowEvent::CloseRequested)
+                    .ok();
                 break;
-            },
+            }
             ":h" => help(),
             _ => (),
         }
     }
 }
-

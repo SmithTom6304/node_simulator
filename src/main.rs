@@ -1,3 +1,3 @@
 fn main() {
-    node_simulator::run();    
+    node_simulator::run();
 }

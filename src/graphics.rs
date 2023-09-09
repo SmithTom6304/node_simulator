@@ -1,23 +1,28 @@
-use winit::{event_loop::{self, EventLoopBuilder}, window, event};
+use winit::{
+    event,
+    event_loop::{self, EventLoopBuilder},
+    window,
+};
 
 use self::state::State;
 
-pub mod vertex;
-mod state;
 mod camera;
+mod instance;
+mod state;
 mod texture;
+pub mod vertex;
 
 pub fn init() {
     env_logger::init();
 }
 
 pub fn get_event_loop() -> event_loop::EventLoop<event::WindowEvent<'static>> {
-    let mut event_loop_builder: EventLoopBuilder<event::WindowEvent> = event_loop::EventLoopBuilder::with_user_event();
+    let mut event_loop_builder: EventLoopBuilder<event::WindowEvent> =
+        event_loop::EventLoopBuilder::with_user_event();
     event_loop_builder.build()
 }
 
 pub async fn run(event_loop: event_loop::EventLoop<event::WindowEvent<'static>>) {
-    
     let window = window::WindowBuilder::new().build(&event_loop).unwrap();
 
     let mut state = State::new(window).await;
@@ -39,6 +44,16 @@ pub async fn run(event_loop: event_loop::EventLoop<event::WindowEvent<'static>>)
                             },
                         ..
                     } => *control_flow = event_loop::ControlFlow::Exit,
+                    event::WindowEvent::KeyboardInput {
+                        input:
+                            event::KeyboardInput {
+                                state: event::ElementState::Pressed,
+                                virtual_keycode: Some(event::VirtualKeyCode::Space),
+                                ..
+                            },
+                        ..
+                    } => state.move_offset += 1.5,
+
                     event::WindowEvent::Resized(physical_size) => {
                         state.resize(*physical_size);
                     }
@@ -62,19 +77,19 @@ pub async fn run(event_loop: event_loop::EventLoop<event::WindowEvent<'static>>)
                 // Reconfigure the surface if lost
                 Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
                 // The system is out of memory, we should probably quit
-                Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = event_loop::ControlFlow::Exit,
+                Err(wgpu::SurfaceError::OutOfMemory) => {
+                    *control_flow = event_loop::ControlFlow::Exit
+                }
                 // All other errors (Outdated, Timeout) should be resolved by the next frame
                 Err(e) => eprintln!("{:?}", e),
             }
         }
-        event::Event::UserEvent(event) => {
-            match event {
-                event::WindowEvent::CloseRequested => {
-                    *control_flow = event_loop::ControlFlow::Exit;
-                },
-                _ => {}
+        event::Event::UserEvent(event) => match event {
+            event::WindowEvent::CloseRequested => {
+                *control_flow = event_loop::ControlFlow::Exit;
             }
-        }
+            _ => {}
+        },
         event::Event::MainEventsCleared => {
             // RedrawRequested will only trigger once, unless we manually
             // request it.
@@ -83,4 +98,3 @@ pub async fn run(event_loop: event_loop::EventLoop<event::WindowEvent<'static>>)
         _ => {}
     });
 }
-

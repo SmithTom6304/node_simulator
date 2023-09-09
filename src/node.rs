@@ -7,7 +7,7 @@ pub struct Node {
 
 impl Node {
     pub fn new(x: i32, y: i32) -> Self {
-        Node {x, y}
+        Node { x, y }
     }
 }
 
@@ -22,6 +22,3 @@ mod tests {
         assert_eq!(7, node.y);
     }
 }
-
-
-
