@@ -8,9 +8,10 @@ use self::state::State;
 
 mod camera;
 mod instance;
+mod model;
 mod state;
 mod texture;
-pub mod vertex;
+mod vertex;
 
 pub fn init() {
     env_logger::init();

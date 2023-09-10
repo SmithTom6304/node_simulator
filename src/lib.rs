@@ -7,10 +7,10 @@ use winit::event_loop::EventLoopProxy;
 
 use cgmath::prelude::*;
 
-mod display;
 mod graphics;
 mod node;
 mod node_collection;
+mod resources;
 
 const QUIT_COMMAND: &str = ":q";
 

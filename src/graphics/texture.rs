@@ -1,3 +1,4 @@
+use crate::resources;
 use anyhow::*;
 use image::GenericImageView;
 
@@ -76,4 +77,13 @@ impl Texture {
             sampler,
         })
     }
+}
+
+pub async fn load_texture(
+    file_name: &str,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+) -> anyhow::Result<Texture> {
+    let data = resources::load_binary(file_name).await?;
+    Texture::from_bytes(device, queue, &data, file_name)
 }
