@@ -1,12 +1,14 @@
 use bytemuck;
 use wgpu::util::DeviceExt;
+use wgpu::BindGroupLayout;
 use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
 use winit::{event::WindowEvent, window::Window};
 
+use super::camera;
 use super::instance;
+use super::models::{model, model_collection};
 use super::texture;
 use super::vertex::{self, Vertex};
-use super::{camera, model};
 
 use cgmath::prelude::*;
 
@@ -29,8 +31,10 @@ pub struct State {
     instances: Vec<instance::Instance>,
     instance_buffer: wgpu::Buffer,
     pub move_offset: f32,
-    obj_model: model::Model,
+    models: model_collection::ModelCollection,
     depth_texture: texture::Texture,
+    texture_bind_group_layout: BindGroupLayout,
+    cuboid_id: Option<u8>,
 }
 
 const NUM_INSTANCES_PER_ROW: u32 = 10;
@@ -284,9 +288,20 @@ impl State {
             usage: wgpu::BufferUsages::VERTEX,
         });
 
-        let obj_model = model::load_model("cube.obj", &device, &queue, &texture_bind_group_layout)
-            .await
-            .unwrap();
+        let mut models = model_collection::ModelCollection::new();
+        models.add(model::LoadModelDescriptor::new(
+            "cube.obj",
+            &device,
+            &queue,
+            &texture_bind_group_layout,
+        ));
+        let cuboid_id = models.add(model::LoadModelDescriptor::new(
+            "cuboid.obj",
+            &device,
+            &queue,
+            &texture_bind_group_layout,
+        ));
+        let cuboid_id = Some(cuboid_id);
 
         Self {
             window,
@@ -307,8 +322,10 @@ impl State {
             instances,
             instance_buffer,
             move_offset,
-            obj_model,
+            models,
             depth_texture,
+            texture_bind_group_layout,
+            cuboid_id,
         }
     }
 
@@ -339,7 +356,16 @@ impl State {
                         ..
                     },
                 ..
-            } => self.texture_index = (self.texture_index + 1) % self.diffuse_textures.len(),
+            } => {
+                match self.cuboid_id {
+                    Some(id) => {
+                        self.models.remove(id);
+                        self.cuboid_id = None;
+                    }
+                    None => pollster::block_on(self.add_cuboid()),
+                }
+                return true;
+            }
             _ => (),
         }
         false
@@ -378,6 +404,15 @@ impl State {
                 usage: wgpu::BufferUsages::VERTEX,
             });
         self.move_offset = 0.0;
+    }
+
+    async fn add_cuboid(&mut self) {
+        self.cuboid_id = Some(self.models.add(model::LoadModelDescriptor::new(
+            "cuboid.obj",
+            &self.device,
+            &self.queue,
+            &self.texture_bind_group_layout,
+        )));
     }
 
     pub fn render(&mut self, clear_colour: wgpu::Color) -> Result<(), wgpu::SurfaceError> {
@@ -419,8 +454,9 @@ impl State {
             render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
 
             use model::DrawModel;
-            render_pass
-                .draw_mesh_instanced(&self.obj_model.meshes[0], 0..self.instances.len() as u32);
+            for model in self.models.iter() {
+                render_pass.draw_mesh_instanced(&model.meshes[0], 0..self.instances.len() as u32);
+            }
         }
 
         // submit will accept anything that implements IntoIter

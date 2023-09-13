@@ -8,7 +8,7 @@ use self::state::State;
 
 mod camera;
 mod instance;
-mod model;
+mod models;
 mod state;
 mod texture;
 mod vertex;

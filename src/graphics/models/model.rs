@@ -5,12 +5,20 @@ use std::{
 
 use wgpu::util::DeviceExt;
 
-use super::{texture, vertex};
+use crate::graphics::{texture, vertex};
 use crate::resources;
 
 pub struct Model {
+    pub id: u8,
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
+}
+
+pub struct LoadModelDescriptor<'a> {
+    pub file_name: &'a str,
+    pub device: &'a wgpu::Device,
+    pub queue: &'a wgpu::Queue,
+    pub layout: &'a wgpu::BindGroupLayout,
 }
 
 pub struct Material {
@@ -62,13 +70,8 @@ impl vertex::Vertex for ModelVertex {
     }
 }
 
-pub async fn load_model(
-    file_name: &str,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    layout: &wgpu::BindGroupLayout,
-) -> anyhow::Result<Model> {
-    let obj_text = resources::load_string(file_name).await?;
+pub async fn load_model(descriptor: LoadModelDescriptor<'_>, id: u8) -> anyhow::Result<Model> {
+    let obj_text = resources::load_string(descriptor.file_name).await?;
     let obj_cursor = Cursor::new(obj_text);
     let mut obj_reader = BufReader::new(obj_cursor);
 
@@ -88,21 +91,24 @@ pub async fn load_model(
 
     let mut materials = Vec::new();
     for m in obj_materials? {
-        let diffuse_texture = texture::load_texture(&m.diffuse_texture, device, queue).await?;
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                },
-            ],
-            label: None,
-        });
+        let diffuse_texture =
+            texture::load_texture(&m.diffuse_texture, descriptor.device, descriptor.queue).await?;
+        let bind_group = descriptor
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: descriptor.layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+                    },
+                ],
+                label: None,
+            });
 
         materials.push(Material {
             name: m.name,
@@ -130,19 +136,25 @@ pub async fn load_model(
                 })
                 .collect::<Vec<_>>();
 
-            let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(&format!("{:?} Vertex Buffer", file_name)),
-                contents: bytemuck::cast_slice(&vertices),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-            let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(&format!("{:?} Index Buffer", file_name)),
-                contents: bytemuck::cast_slice(&m.mesh.indices),
-                usage: wgpu::BufferUsages::INDEX,
-            });
+            let vertex_buffer =
+                descriptor
+                    .device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: Some(&format!("{:?} Vertex Buffer", descriptor.file_name)),
+                        contents: bytemuck::cast_slice(&vertices),
+                        usage: wgpu::BufferUsages::VERTEX,
+                    });
+            let index_buffer =
+                descriptor
+                    .device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: Some(&format!("{:?} Index Buffer", descriptor.file_name)),
+                        contents: bytemuck::cast_slice(&m.mesh.indices),
+                        usage: wgpu::BufferUsages::INDEX,
+                    });
 
             Mesh {
-                name: file_name.to_string(),
+                name: descriptor.file_name.to_string(),
                 vertex_buffer,
                 index_buffer,
                 num_elements: m.mesh.indices.len() as u32,
@@ -151,7 +163,11 @@ pub async fn load_model(
         })
         .collect::<Vec<_>>();
 
-    Ok(Model { meshes, materials })
+    Ok(Model {
+        meshes,
+        materials,
+        id,
+    })
 }
 
 pub trait DrawModel<'a> {
@@ -171,5 +187,21 @@ where
         self.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
         self.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
         self.draw_indexed(0..mesh.num_elements, 0, instances);
+    }
+}
+
+impl<'a> LoadModelDescriptor<'a> {
+    pub fn new(
+        file_name: &'a str,
+        device: &'a wgpu::Device,
+        queue: &'a wgpu::Queue,
+        layout: &'a wgpu::BindGroupLayout,
+    ) -> LoadModelDescriptor<'a> {
+        LoadModelDescriptor {
+            file_name,
+            device,
+            queue,
+            layout,
+        }
     }
 }
