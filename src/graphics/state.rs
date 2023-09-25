@@ -38,11 +38,6 @@ pub struct State {
 }
 
 const NUM_INSTANCES_PER_ROW: u32 = 10;
-const INSTANCE_DISPLACEMENT: cgmath::Vector3<f32> = cgmath::Vector3::new(
-    NUM_INSTANCES_PER_ROW as f32 * 0.5,
-    0.0,
-    NUM_INSTANCES_PER_ROW as f32 * 0.5,
-);
 
 impl State {
     // Creating some of the wgpu types requires async code
@@ -391,14 +386,13 @@ impl State {
             bytemuck::cast_slice(&[self.camera_uniform]),
         );
 
-        if (self.move_offset != 0.0) {
+        if self.move_offset != 0.0 {
             self.update_instances()
         }
     }
 
     fn update_instances(&mut self) {
         for instance in self.instances.iter_mut() {
-            let i = self.move_offset as f32;
             instance.position.z += self.move_offset as f32;
         }
 

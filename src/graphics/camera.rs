@@ -1,6 +1,5 @@
-use bytemuck::Zeroable;
+use winit::event::WindowEvent;
 use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
-use winit::{event::WindowEvent, window::Window};
 
 pub struct Camera {
     pub eye: cgmath::Point3<f32>,

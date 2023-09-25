@@ -3,9 +3,6 @@ use std::thread;
 
 use winit::event;
 use winit::event_loop;
-use winit::event_loop::EventLoopProxy;
-
-use cgmath::prelude::*;
 
 mod graphics;
 mod node;
