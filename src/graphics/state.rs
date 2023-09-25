@@ -8,7 +8,7 @@ use super::camera;
 use super::instance;
 use super::models::{model, model_collection};
 use super::texture;
-use super::vertex::{self, Vertex};
+use super::vertex::Vertex;
 
 use cgmath::prelude::*;
 
@@ -289,19 +289,30 @@ impl State {
         });
 
         let mut models = model_collection::ModelCollection::new();
-        models.add(model::LoadModelDescriptor::new(
+        let cube_descriptor = model::LoadModelDescriptor::new(
             "cube.obj",
             &device,
             &queue,
             &texture_bind_group_layout,
-        ));
-        let cuboid_id = models.add(model::LoadModelDescriptor::new(
+        );
+        let cuboid_descriptor = model::LoadModelDescriptor::new(
             "cuboid.obj",
             &device,
             &queue,
             &texture_bind_group_layout,
-        ));
-        let cuboid_id = Some(cuboid_id);
+        );
+        let load_model = |id| {
+            let model = pollster::block_on(model::load_model(cube_descriptor, id));
+            let model = model.unwrap();
+            return model;
+        };
+        models.add(load_model);
+        let load_model = |id| {
+            let model = pollster::block_on(model::load_model(cuboid_descriptor, id));
+            let model = model.unwrap();
+            return model;
+        };
+        let cuboid_id = Some(models.add(load_model));
 
         Self {
             window,
@@ -407,12 +418,18 @@ impl State {
     }
 
     async fn add_cuboid(&mut self) {
-        self.cuboid_id = Some(self.models.add(model::LoadModelDescriptor::new(
-            "cuboid.obj",
-            &self.device,
-            &self.queue,
-            &self.texture_bind_group_layout,
-        )));
+        let load_model = |id| {
+            let model_descriptor = model::LoadModelDescriptor::new(
+                "cuboid.obj",
+                &self.device,
+                &self.queue,
+                &self.texture_bind_group_layout,
+            );
+            let model = pollster::block_on(model::load_model(model_descriptor, id));
+            let model = model.unwrap();
+            return model;
+        };
+        self.cuboid_id = Some(self.models.add(load_model));
     }
 
     pub fn render(&mut self, clear_colour: wgpu::Color) -> Result<(), wgpu::SurfaceError> {

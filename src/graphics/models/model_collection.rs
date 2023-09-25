@@ -15,12 +15,28 @@ impl ModelCollection {
         }
     }
 
-    pub fn add(&mut self, model_descriptor: model::LoadModelDescriptor) -> u8 {
+    pub fn add_from_descriptor(&mut self, model_descriptor: model::LoadModelDescriptor) -> u8 {
         let id = self.new_model_id;
         self.new_model_id += 1;
 
         let model = pollster::block_on(model::load_model(model_descriptor, id));
         let model = model.unwrap();
+
+        let id = model.id;
+
+        self.models.push(model);
+
+        return id;
+    }
+
+    pub fn add<LM>(&mut self, load_model: LM) -> u8
+    where
+        LM: FnOnce(u8) -> model::Model,
+    {
+        let id = self.new_model_id;
+        self.new_model_id += 1;
+
+        let model = load_model(id);
 
         let id = model.id;
 
