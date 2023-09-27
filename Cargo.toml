@@ -28,4 +28,7 @@ anyhow = "1.0"
 fs_extra = "1.2"
 glob = "0.3"
 
+[dev-dependencies]
+utilities = {path = "utilities" }
+
 
