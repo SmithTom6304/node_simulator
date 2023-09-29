@@ -34,7 +34,7 @@ pub struct State {
     models: model_collection::ModelCollection,
     depth_texture: texture::Texture,
     texture_bind_group_layout: BindGroupLayout,
-    cuboid_id: Option<u8>,
+    cuboid_id: Option<model::ModelId>,
 }
 
 const NUM_INSTANCES_PER_ROW: u32 = 10;

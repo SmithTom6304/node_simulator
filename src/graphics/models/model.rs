@@ -9,10 +9,13 @@ use crate::graphics::{texture, vertex};
 use crate::resources;
 
 pub struct Model {
-    pub id: u8,
+    pub id: ModelId,
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
 }
+
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub struct ModelId(pub u32);
 
 pub struct LoadModelDescriptor<'a> {
     pub file_name: &'a str,
@@ -70,7 +73,7 @@ impl vertex::Vertex for ModelVertex {
     }
 }
 
-pub async fn load_model(descriptor: LoadModelDescriptor<'_>, id: u8) -> anyhow::Result<Model> {
+pub async fn load_model(descriptor: LoadModelDescriptor<'_>, id: ModelId) -> anyhow::Result<Model> {
     let obj_text = resources::load_string(descriptor.file_name).await?;
     let obj_cursor = Cursor::new(obj_text);
     let mut obj_reader = BufReader::new(obj_cursor);

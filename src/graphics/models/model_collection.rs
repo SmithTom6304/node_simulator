@@ -2,25 +2,25 @@ use super::model;
 
 pub struct ModelCollection {
     models: Vec<model::Model>,
-    new_model_id: u8,
+    new_model_id: model::ModelId,
 }
 
 impl ModelCollection {
     pub fn new() -> ModelCollection {
         let models = Vec::new();
-        let new_model_id = 0;
+        let new_model_id: model::ModelId = model::ModelId(0);
         ModelCollection {
             models,
             new_model_id,
         }
     }
 
-    pub fn add<LM>(&mut self, load_model: LM) -> u8
+    pub fn add<LM>(&mut self, load_model: LM) -> model::ModelId
     where
-        LM: FnOnce(u8) -> model::Model,
+        LM: FnOnce(model::ModelId) -> model::Model,
     {
         let id = self.new_model_id;
-        self.new_model_id += 1;
+        self.new_model_id.0 += 1;
 
         let model = load_model(id);
 
@@ -31,7 +31,7 @@ impl ModelCollection {
         return id;
     }
 
-    pub fn remove(&mut self, model_id: u8) -> bool {
+    pub fn remove(&mut self, model_id: model::ModelId) -> bool {
         let size_before = self.models.len();
         self.models.retain(|model| model.id != model_id);
         self.models.len() != size_before
