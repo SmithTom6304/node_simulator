@@ -3,3 +3,5 @@ pub mod model_collection;
 
 #[cfg(test)]
 mod model_collection_tests;
+#[cfg(test)]
+mod model_tests;

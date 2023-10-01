@@ -5,7 +5,7 @@ use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
 use winit::{event::WindowEvent, window::Window};
 
 use super::camera;
-use super::instance;
+use super::instances::{instance, instance_collection};
 use super::models::{model, model_collection};
 use super::texture;
 use super::vertex::Vertex;
@@ -28,13 +28,11 @@ pub struct State {
     camera_uniform: camera::CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
-    instances: Vec<instance::Instance>,
-    instance_buffer: wgpu::Buffer,
     pub move_offset: f32,
     models: model_collection::ModelCollection,
     depth_texture: texture::Texture,
     texture_bind_group_layout: BindGroupLayout,
-    cuboid_id: Option<model::ModelId>,
+    instance_collections: Vec<instance_collection::InstanceCollection>,
 }
 
 const NUM_INSTANCES_PER_ROW: u32 = 10;
@@ -249,49 +247,47 @@ impl State {
         let move_offset = 0.0;
 
         const SPACE_BETWEEN: f32 = 3.0;
-        let instances = (0..NUM_INSTANCES_PER_ROW)
-            .flat_map(|z| {
-                (0..NUM_INSTANCES_PER_ROW).map(move |x| {
-                    let x = SPACE_BETWEEN * (x as f32 - NUM_INSTANCES_PER_ROW as f32 / 2.0);
-                    let z = SPACE_BETWEEN * (z as f32 - NUM_INSTANCES_PER_ROW as f32 / 2.0);
 
-                    let position = cgmath::Vector3 { x, y: 0.0, z };
-
-                    let rotation = if position.is_zero() {
-                        // this is needed so an object at (0, 0, 0) won't get scaled to zero
-                        // as Quaternions can effect scale if they're not created correctly
-                        cgmath::Quaternion::from_axis_angle(
-                            cgmath::Vector3::unit_z(),
-                            cgmath::Deg(0.0),
-                        )
-                    } else {
-                        cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0))
-                    };
-
-                    instance::Instance { position, rotation }
-                })
-            })
-            .collect::<Vec<_>>();
-
-        let instance_data = instances
-            .iter()
-            .map(instance::Instance::to_raw)
-            .collect::<Vec<_>>();
-        let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Instance Buffer"),
-            contents: bytemuck::cast_slice(&instance_data),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
+        let rotation =
+            cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0));
+        let cube_positions = vec![
+            cgmath::Vector3 {
+                x: 1.0,
+                y: 0.0,
+                z: 1.0,
+            },
+            cgmath::Vector3 {
+                x: 4.0,
+                y: 0.0,
+                z: 1.0,
+            },
+            cgmath::Vector3 {
+                x: 7.0,
+                y: 0.0,
+                z: 1.0,
+            },
+        ];
+        let cuboid_positions = vec![
+            cgmath::Vector3 {
+                x: 1.0,
+                y: 0.0,
+                z: 4.0,
+            },
+            cgmath::Vector3 {
+                x: 4.0,
+                y: 0.0,
+                z: 4.0,
+            },
+            cgmath::Vector3 {
+                x: 7.0,
+                y: 0.0,
+                z: 4.0,
+            },
+        ];
 
         let mut models = model_collection::ModelCollection::new();
         let cube_descriptor = model::LoadModelDescriptor::new(
             "cube.obj",
-            &device,
-            &queue,
-            &texture_bind_group_layout,
-        );
-        let cuboid_descriptor = model::LoadModelDescriptor::new(
-            "cuboid.obj",
             &device,
             &queue,
             &texture_bind_group_layout,
@@ -301,13 +297,43 @@ impl State {
             let model = model.unwrap();
             return model;
         };
-        models.add(load_model);
+        let cube_id = models.add(load_model);
+
+        let cube_instances: Vec<instance::Instance> = cube_positions
+            .into_iter()
+            .map(move |position| instance::Instance { position, rotation })
+            .collect();
+
+        let mut cube_instance_collection = instance_collection::InstanceCollection::new(cube_id);
+        cube_instances
+            .into_iter()
+            .for_each(|instance| cube_instance_collection.add(instance));
+
+        let cuboid_descriptor = model::LoadModelDescriptor::new(
+            "cuboid.obj",
+            &device,
+            &queue,
+            &texture_bind_group_layout,
+        );
         let load_model = |id| {
             let model = pollster::block_on(model::load_model(cuboid_descriptor, id));
             let model = model.unwrap();
             return model;
         };
-        let cuboid_id = Some(models.add(load_model));
+        let cuboid_id = models.add(load_model);
+
+        let cuboid_instances: Vec<instance::Instance> = cuboid_positions
+            .into_iter()
+            .map(move |position| instance::Instance { position, rotation })
+            .collect();
+
+        let mut cuboid_instance_collection =
+            instance_collection::InstanceCollection::new(cuboid_id);
+        cuboid_instances
+            .into_iter()
+            .for_each(|instance| cuboid_instance_collection.add(instance));
+
+        let instance_collections = vec![cube_instance_collection, cuboid_instance_collection];
 
         Self {
             window,
@@ -325,13 +351,11 @@ impl State {
             camera_buffer,
             camera_uniform,
             camera_bind_group,
-            instances,
-            instance_buffer,
             move_offset,
             models,
             depth_texture,
             texture_bind_group_layout,
-            cuboid_id,
+            instance_collections,
         }
     }
 
@@ -354,24 +378,6 @@ impl State {
         self.camera_controller.process_events(event);
         match event {
             WindowEvent::CursorMoved { .. } => {}
-            WindowEvent::KeyboardInput {
-                input:
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::Space),
-                        ..
-                    },
-                ..
-            } => {
-                match self.cuboid_id {
-                    Some(id) => {
-                        self.models.remove(id);
-                        self.cuboid_id = None;
-                    }
-                    None => pollster::block_on(self.add_cuboid()),
-                }
-                return true;
-            }
             _ => (),
         }
         false
@@ -386,45 +392,30 @@ impl State {
             bytemuck::cast_slice(&[self.camera_uniform]),
         );
 
-        if self.move_offset != 0.0 {
-            self.update_instances()
-        }
+        // if self.move_offset != 0.0 {
+        //     self.update_instances()
+        // }
     }
 
-    fn update_instances(&mut self) {
-        for instance in self.instances.iter_mut() {
-            instance.position.z += self.move_offset as f32;
-        }
+    // fn update_instances(&mut self) {
+    //     for instance in self.instances.iter_mut() {
+    //         instance.position.z += self.move_offset as f32;
+    //     }
 
-        let instance_data = self
-            .instances
-            .iter()
-            .map(instance::Instance::to_raw)
-            .collect::<Vec<_>>();
-        self.instance_buffer = self
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Instance Buffer"),
-                contents: bytemuck::cast_slice(&instance_data),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-        self.move_offset = 0.0;
-    }
-
-    async fn add_cuboid(&mut self) {
-        let load_model = |id| {
-            let model_descriptor = model::LoadModelDescriptor::new(
-                "cuboid.obj",
-                &self.device,
-                &self.queue,
-                &self.texture_bind_group_layout,
-            );
-            let model = pollster::block_on(model::load_model(model_descriptor, id));
-            let model = model.unwrap();
-            return model;
-        };
-        self.cuboid_id = Some(self.models.add(load_model));
-    }
+    //     let instance_data = self
+    //         .instances
+    //         .iter()
+    //         .map(instance::Instance::to_raw)
+    //         .collect::<Vec<_>>();
+    //     self.instance_buffer = self
+    //         .device
+    //         .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    //             label: Some("Instance Buffer"),
+    //             contents: bytemuck::cast_slice(&instance_data),
+    //             usage: wgpu::BufferUsages::VERTEX,
+    //         });
+    //     self.move_offset = 0.0;
+    // }
 
     pub fn render(&mut self, clear_colour: wgpu::Color) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
@@ -436,6 +427,17 @@ impl State {
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Render Encoder"),
+            });
+
+        let instance_data = instance_collection::InstanceCollection::get_instance_render_data(
+            &self.instance_collections,
+        );
+        let instance_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: bytemuck::cast_slice(&instance_data.data),
+                usage: wgpu::BufferUsages::VERTEX,
             });
 
         {
@@ -462,11 +464,21 @@ impl State {
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, &self.diffuse_bind_groups[self.texture_index], &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
-            render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+
+            render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
 
             use model::DrawModel;
-            for model in self.models.iter() {
-                render_pass.draw_mesh_instanced(&model.meshes[0], 0..self.instances.len() as u32);
+            for collection in self.instance_collections.iter() {
+                let id = collection.model;
+                let model = self.models.find(id);
+                let model = model.unwrap();
+                let range = &instance_data
+                    .indexes
+                    .iter()
+                    .find(|value| value.0 == id)
+                    .unwrap()
+                    .1;
+                render_pass.draw_mesh_instanced(&model.meshes[0], range.clone());
             }
         }
 

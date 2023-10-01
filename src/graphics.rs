@@ -7,7 +7,7 @@ use winit::{
 use self::state::State;
 
 mod camera;
-mod instance;
+mod instances;
 mod models;
 mod state;
 mod texture;
