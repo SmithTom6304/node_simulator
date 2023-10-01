@@ -1,6 +1,8 @@
 use std::io;
 use std::thread;
 
+use graphics::node_events;
+use node::NodePosition;
 use winit::event;
 use winit::event_loop;
 
@@ -10,6 +12,7 @@ mod node_collection;
 mod resources;
 
 const QUIT_COMMAND: &str = ":q";
+const ADD_NODE_COMMAND: &str = ":a";
 
 pub fn run() {
     graphics::init();
@@ -26,10 +29,10 @@ pub fn run() {
 
 fn help() {
     println!("Enter commands via the CLI.");
-    println!("Enter :h for help, or :q to quit");
+    println!("Enter :h for help, :q to quit, :a to add node");
 }
 
-fn read_input(event_loop_proxy: event_loop::EventLoopProxy<event::WindowEvent>) {
+fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEvent>) {
     loop {
         let mut input = String::new();
         io::stdin()
@@ -40,9 +43,15 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<event::WindowEvent>) 
         match input {
             QUIT_COMMAND => {
                 event_loop_proxy
-                    .send_event(event::WindowEvent::CloseRequested)
+                    .send_event(node_events::NodeEvent::Close)
                     .ok();
                 break;
+            }
+            ADD_NODE_COMMAND => {
+                let node = node::Node::new(NodePosition { x: 5, y: 7 });
+                event_loop_proxy
+                    .send_event(node_events::NodeEvent::Add(node))
+                    .ok();
             }
             ":h" => help(),
             _ => (),

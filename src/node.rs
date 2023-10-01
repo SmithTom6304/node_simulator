@@ -1,11 +1,23 @@
+use std::fmt;
+
 pub struct Node {
+    pub position: NodePosition,
+}
+
+pub struct NodePosition {
     pub x: i32,
     pub y: i32,
 }
 
+impl fmt::Display for NodePosition {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "x: {}, y: {}", self.x, self.y)
+    }
+}
+
 impl Node {
-    pub fn new(x: i32, y: i32) -> Self {
-        Node { x, y }
+    pub fn new(position: NodePosition) -> Self {
+        Node { position }
     }
 }
 
@@ -14,9 +26,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn is_created_from_x_and_y_coord() {
-        let node = Node::new(5, 7);
-        assert_eq!(5, node.x);
-        assert_eq!(7, node.y);
+    fn is_created_from_node_position() {
+        let node = Node::new(NodePosition { x: 5, y: 7 });
+        assert_eq!(5, node.position.x);
+        assert_eq!(7, node.position.y);
     }
 }

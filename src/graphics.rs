@@ -6,9 +6,12 @@ use winit::{
 
 use self::state::State;
 
+use super::node;
+
 mod camera;
 mod instances;
 mod models;
+pub mod node_events;
 mod state;
 mod texture;
 mod vertex;
@@ -17,13 +20,13 @@ pub fn init() {
     env_logger::init();
 }
 
-pub fn get_event_loop() -> event_loop::EventLoop<event::WindowEvent<'static>> {
-    let mut event_loop_builder: EventLoopBuilder<event::WindowEvent> =
-        event_loop::EventLoopBuilder::with_user_event();
+pub fn get_event_loop() -> event_loop::EventLoop<node_events::NodeEvent> {
+    let mut event_loop_builder =
+        event_loop::EventLoopBuilder::<node_events::NodeEvent>::with_user_event();
     event_loop_builder.build()
 }
 
-pub async fn run(event_loop: event_loop::EventLoop<event::WindowEvent<'static>>) {
+pub async fn run(event_loop: event_loop::EventLoop<node_events::NodeEvent>) {
     let window = window::WindowBuilder::new().build(&event_loop).unwrap();
 
     let mut state = State::new(window).await;
@@ -86,9 +89,10 @@ pub async fn run(event_loop: event_loop::EventLoop<event::WindowEvent<'static>>)
             }
         }
         event::Event::UserEvent(event) => match event {
-            event::WindowEvent::CloseRequested => {
+            node_events::NodeEvent::Close => {
                 *control_flow = event_loop::ControlFlow::Exit;
             }
+            node_events::NodeEvent::Add(node) => add_node(&node),
             _ => {}
         },
         event::Event::MainEventsCleared => {
@@ -98,4 +102,8 @@ pub async fn run(event_loop: event_loop::EventLoop<event::WindowEvent<'static>>)
         }
         _ => {}
     });
+}
+
+pub fn add_node(node: &node::Node) {
+    println!("Added Node at {0}", node.position);
 }
