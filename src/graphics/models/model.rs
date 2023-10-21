@@ -3,15 +3,15 @@ use std::{
     ops::Range,
 };
 
-use wgpu::util::DeviceExt;
-
-use crate::graphics::{texture, vertex};
+use crate::graphics::vertex;
 use crate::resources;
+
+use super::{material, mesh};
 
 pub struct Model {
     pub id: u8,
-    pub meshes: Vec<Mesh>,
-    pub materials: Vec<Material>,
+    pub meshes: Vec<mesh::Mesh>,
+    pub materials: Vec<material::Material>,
 }
 
 pub struct LoadModelDescriptor<'a> {
@@ -19,20 +19,6 @@ pub struct LoadModelDescriptor<'a> {
     pub device: &'a wgpu::Device,
     pub queue: &'a wgpu::Queue,
     pub layout: &'a wgpu::BindGroupLayout,
-}
-
-pub struct Material {
-    pub name: String,
-    pub diffuse_texture: texture::Texture,
-    pub bind_group: wgpu::BindGroup,
-}
-
-pub struct Mesh {
-    pub name: String,
-    pub vertex_buffer: wgpu::Buffer,
-    pub index_buffer: wgpu::Buffer,
-    pub num_elements: u32,
-    pub material: usize,
 }
 
 #[repr(C)]
@@ -75,7 +61,7 @@ pub async fn load_model(descriptor: LoadModelDescriptor<'_>, id: u8) -> anyhow::
     let obj_cursor = Cursor::new(obj_text);
     let mut obj_reader = BufReader::new(obj_cursor);
 
-    let (models, obj_materials) = tobj::load_obj_buf_async(
+    let (obj_models, obj_materials) = tobj::load_obj_buf_async(
         &mut obj_reader,
         &tobj::LoadOptions {
             triangulate: true,
@@ -91,75 +77,25 @@ pub async fn load_model(descriptor: LoadModelDescriptor<'_>, id: u8) -> anyhow::
 
     let mut materials = Vec::new();
     for m in obj_materials? {
-        let diffuse_texture =
-            texture::load_texture(&m.diffuse_texture, descriptor.device, descriptor.queue).await?;
-        let bind_group = descriptor
-            .device
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: descriptor.layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                    },
-                ],
-                label: None,
-            });
-
-        materials.push(Material {
-            name: m.name,
-            diffuse_texture,
-            bind_group,
-        })
+        materials.push(
+            material::Material::load(
+                m.name,
+                &m.diffuse_texture,
+                descriptor.device,
+                descriptor.queue,
+            )
+            .await,
+        );
     }
 
-    let meshes = models
+    let meshes = obj_models
         .into_iter()
-        .map(|m| {
-            let vertices = (0..m.mesh.positions.len() / 3)
-                .map(|i| ModelVertex {
-                    position: [
-                        m.mesh.positions[i * 3],
-                        m.mesh.positions[i * 3 + 1],
-                        m.mesh.positions[i * 3 + 2],
-                    ],
-                    tex_coords: [m.mesh.texcoords[i * 2], m.mesh.texcoords[i * 2 + 1]],
-                    normal: [
-                        m.mesh.normals[i * 3],
-                        m.mesh.normals[i * 3 + 1],
-                        m.mesh.normals[i * 3 + 2],
-                    ],
-                })
-                .collect::<Vec<_>>();
-
-            let vertex_buffer =
-                descriptor
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some(&format!("{:?} Vertex Buffer", descriptor.file_name)),
-                        contents: bytemuck::cast_slice(&vertices),
-                        usage: wgpu::BufferUsages::VERTEX,
-                    });
-            let index_buffer =
-                descriptor
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some(&format!("{:?} Index Buffer", descriptor.file_name)),
-                        contents: bytemuck::cast_slice(&m.mesh.indices),
-                        usage: wgpu::BufferUsages::INDEX,
-                    });
-
-            Mesh {
-                name: descriptor.file_name.to_string(),
-                vertex_buffer,
-                index_buffer,
-                num_elements: m.mesh.indices.len() as u32,
-                material: m.mesh.material_id.unwrap_or(0),
-            }
+        .map(|obj_model| {
+            mesh::Mesh::load(
+                obj_model.mesh,
+                descriptor.file_name.to_string(),
+                descriptor.device,
+            )
         })
         .collect::<Vec<_>>();
 
@@ -171,11 +107,16 @@ pub async fn load_model(descriptor: LoadModelDescriptor<'_>, id: u8) -> anyhow::
 }
 
 pub trait DrawModel<'a> {
-    fn draw_mesh(&mut self, mesh: &'a Mesh, material: &'a Material, camera_bind_group: &'a wgpu::BindGroup);
+    fn draw_mesh(
+        &mut self,
+        mesh: &'a mesh::Mesh,
+        material: &'a material::Material,
+        camera_bind_group: &'a wgpu::BindGroup,
+    );
     fn draw_mesh_instanced(
-        &mut self, 
-        mesh: &'a Mesh, 
-        material: &'a Material,
+        &mut self,
+        mesh: &'a mesh::Mesh,
+        material: &'a material::Material,
         instances: Range<u32>,
         camera_bind_group: &'a wgpu::BindGroup,
     );
@@ -185,16 +126,21 @@ impl<'a, 'b> DrawModel<'b> for wgpu::RenderPass<'a>
 where
     'b: 'a,
 {
-    fn draw_mesh(&mut self, mesh: &'b Mesh, material: &'b Material, camera_bind_group: &'b wgpu::BindGroup) {
+    fn draw_mesh(
+        &mut self,
+        mesh: &'b mesh::Mesh,
+        material: &'b material::Material,
+        camera_bind_group: &'b wgpu::BindGroup,
+    ) {
         self.draw_mesh_instanced(mesh, material, 0..1, camera_bind_group);
     }
 
     fn draw_mesh_instanced(
-        &mut self, 
-        mesh: &'b Mesh, 
-        material: &'b Material,
+        &mut self,
+        mesh: &'b mesh::Mesh,
+        material: &'b material::Material,
         instances: Range<u32>,
-        camera_bind_group: &'b wgpu::BindGroup
+        camera_bind_group: &'b wgpu::BindGroup,
     ) {
         self.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
         self.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);

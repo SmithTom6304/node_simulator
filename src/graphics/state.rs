@@ -6,7 +6,7 @@ use winit::{event::WindowEvent, window::Window};
 
 use super::camera;
 use super::instance;
-use super::models::{model, model_collection};
+use super::models::{material, model, model_collection};
 use super::texture;
 use super::vertex::Vertex;
 
@@ -20,7 +20,7 @@ pub struct State {
     pub size: winit::dpi::PhysicalSize<u32>,
     pub window: Window,
     pub render_pipeline: wgpu::RenderPipeline,
-    default_material: Option<model::Material>,
+    default_material: Option<material::Material>,
     use_default_material: bool,
     camera: camera::Camera,
     camera_controller: camera::CameraController,
@@ -145,7 +145,7 @@ impl State {
             label: Some("diffuse_bind_group_sarah"),
         });
 
-        let default_material = model::Material {
+        let default_material = material::Material {
             name: "default_material".to_string(),
             diffuse_texture: default_texture,
             bind_group: diffuse_bind_group_sarah,
@@ -384,7 +384,7 @@ impl State {
                         ..
                     },
                 ..
-            } => { self.use_default_material = !self.use_default_material},
+            } => self.use_default_material = !self.use_default_material,
             _ => (),
         }
         false
@@ -481,10 +481,15 @@ impl State {
                 let mesh = &model.meshes[0];
                 let material = match self.use_default_material {
                     true => &self.default_material.as_ref().unwrap(),
-                    false => &model.materials[0]
+                    false => &model.materials[0],
                 };
-                
-                render_pass.draw_mesh_instanced(mesh, material, 0..self.instances.len() as u32, &self.camera_bind_group);
+
+                render_pass.draw_mesh_instanced(
+                    mesh,
+                    material,
+                    0..self.instances.len() as u32,
+                    &self.camera_bind_group,
+                );
             }
         }
 
