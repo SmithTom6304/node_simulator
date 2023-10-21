@@ -466,7 +466,9 @@ impl State {
 
             use model::DrawModel;
             for model in self.models.iter() {
-                render_pass.draw_mesh_instanced(&model.meshes[0], 0..self.instances.len() as u32);
+                let mesh = &model.meshes[0];
+                let material = &model.materials[0];
+                render_pass.draw_mesh_instanced(mesh, material, 0..self.instances.len() as u32, &self.camera_bind_group);
             }
         }
 
