@@ -20,9 +20,8 @@ pub struct State {
     pub size: winit::dpi::PhysicalSize<u32>,
     pub window: Window,
     pub render_pipeline: wgpu::RenderPipeline,
-    diffuse_bind_groups: [wgpu::BindGroup; 1],
-    diffuse_textures: [texture::Texture; 1],
-    pub texture_index: usize,
+    default_material: Option<model::Material>,
+    use_default_material: bool,
     camera: camera::Camera,
     camera_controller: camera::CameraController,
     camera_uniform: camera::CameraUniform,
@@ -102,9 +101,9 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let diffuse_bytes_sarah = include_bytes!("../../data/sarah.jpg");
-        let diffuse_texture_sarah =
-            texture::Texture::from_bytes(&device, &queue, diffuse_bytes_sarah, "sarah").unwrap();
+        let default_texture_bytes = include_bytes!("../../data/sarah.jpg");
+        let default_texture =
+            texture::Texture::from_bytes(&device, &queue, default_texture_bytes, "sarah").unwrap();
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -136,15 +135,21 @@ impl State {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture_sarah.view),
+                    resource: wgpu::BindingResource::TextureView(&default_texture.view),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture_sarah.sampler),
+                    resource: wgpu::BindingResource::Sampler(&default_texture.sampler),
                 },
             ],
             label: Some("diffuse_bind_group_sarah"),
         });
+
+        let default_material = model::Material {
+            name: "default_material".to_string(),
+            diffuse_texture: default_texture,
+            bind_group: diffuse_bind_group_sarah,
+        };
 
         let camera = camera::Camera {
             eye: (0.0, 1.0, 2.0).into(),
@@ -317,9 +322,8 @@ impl State {
             config,
             size,
             render_pipeline,
-            diffuse_bind_groups: [diffuse_bind_group_sarah],
-            diffuse_textures: [diffuse_texture_sarah],
-            texture_index: 0,
+            default_material: Some(default_material),
+            use_default_material: false,
             camera,
             camera_controller,
             camera_buffer,
@@ -372,6 +376,15 @@ impl State {
                 }
                 return true;
             }
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::D),
+                        ..
+                    },
+                ..
+            } => { self.use_default_material = !self.use_default_material},
             _ => (),
         }
         false
@@ -460,14 +473,17 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_bind_group(0, &self.diffuse_bind_groups[self.texture_index], &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
             render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
 
             use model::DrawModel;
             for model in self.models.iter() {
                 let mesh = &model.meshes[0];
-                let material = &model.materials[0];
+                let material = match self.use_default_material {
+                    true => &self.default_material.as_ref().unwrap(),
+                    false => &model.materials[0]
+                };
+                
                 render_pass.draw_mesh_instanced(mesh, material, 0..self.instances.len() as u32, &self.camera_bind_group);
             }
         }
