@@ -39,7 +39,7 @@ const NUM_INSTANCES_PER_ROW: u32 = 10;
 
 impl State {
     // Creating some of the wgpu types requires async code
-    pub async fn new(window: Window) -> Self {
+    pub async fn new(window: Window, default_texture_path: Option<String>) -> Self {
         let size = window.inner_size();
 
         // The instance is a handle to our GPU
@@ -100,9 +100,13 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let default_material =
-            material::Material::load("default_material".to_string(), "sarah.jpg", &device, &queue)
-                .await;
+        let default_material: Option<material::Material> = match default_texture_path {
+            Some(path) => Some(
+                material::Material::load("default_material".to_string(), &path, &device, &queue)
+                    .await,
+            ),
+            None => None,
+        };
 
         let camera = camera::Camera {
             eye: (0.0, 1.0, 2.0).into(),
@@ -268,7 +272,7 @@ impl State {
             config,
             size,
             render_pipeline,
-            default_material: Some(default_material),
+            default_material: default_material,
             use_default_material: false,
             camera,
             camera_controller,
@@ -420,8 +424,12 @@ impl State {
             use model::DrawModel;
             for model in self.models.iter() {
                 let mesh = &model.meshes[0];
+
                 let material = match self.use_default_material {
-                    true => &self.default_material.as_ref().unwrap(),
+                    true => &self
+                        .default_material
+                        .as_ref()
+                        .unwrap_or(&model.materials[0]),
                     false => &model.materials[0],
                 };
 
