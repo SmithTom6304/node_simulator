@@ -102,10 +102,25 @@ impl State {
         surface.configure(&device, &config);
 
         let default_material: Option<material::Material> = match default_texture_path {
-            Some(path) => Some(
-                material::Material::load("default_material".to_string(), &path, &device, &queue)
-                    .await,
-            ),
+            Some(path) => {
+                let material = material::Material::load(
+                    "default_material".to_string(),
+                    &path,
+                    &device,
+                    &queue,
+                )
+                .await;
+                match material {
+                    Ok(mat) => (Some(mat)),
+                    Err(error) => {
+                        println!(
+                            "Error loading material from file {} - {}",
+                            &path, error.message
+                        );
+                        None
+                    }
+                }
+            }
             None => None,
         };
 
@@ -115,7 +130,8 @@ impl State {
             &device,
             &queue,
         )
-        .await;
+        .await
+        .expect("Could not load fallback texture");
 
         let camera = camera::Camera {
             eye: (0.0, 1.0, 2.0).into(),

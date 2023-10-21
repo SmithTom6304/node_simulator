@@ -76,15 +76,20 @@ pub async fn load_model(descriptor: LoadModelDescriptor<'_>, id: u8) -> anyhow::
 
     let mut materials = Vec::new();
     for m in obj_materials? {
-        materials.push(
-            material::Material::load(
-                m.name,
-                &m.diffuse_texture,
-                descriptor.device,
-                descriptor.queue,
-            )
-            .await,
-        );
+        let material = material::Material::load(
+            m.name,
+            &m.diffuse_texture,
+            descriptor.device,
+            descriptor.queue,
+        )
+        .await;
+        match material {
+            Ok(mat) => materials.push(mat),
+            Err(err) => println!(
+                "Error loading material from file {} - {}",
+                &m.diffuse_texture, err.message
+            ),
+        };
     }
 
     let meshes = obj_models
