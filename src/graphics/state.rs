@@ -20,6 +20,7 @@ pub struct State {
     pub size: winit::dpi::PhysicalSize<u32>,
     pub window: Window,
     pub render_pipeline: wgpu::RenderPipeline,
+    fallback_material: material::Material,
     default_material: Option<material::Material>,
     use_default_material: bool,
     camera: camera::Camera,
@@ -107,6 +108,14 @@ impl State {
             ),
             None => None,
         };
+
+        let fallback_material = material::Material::load(
+            "fallback_material".to_string(),
+            "fallback-texture.jpg",
+            &device,
+            &queue,
+        )
+        .await;
 
         let camera = camera::Camera {
             eye: (0.0, 1.0, 2.0).into(),
@@ -272,7 +281,8 @@ impl State {
             config,
             size,
             render_pipeline,
-            default_material: default_material,
+            fallback_material,
+            default_material,
             use_default_material: false,
             camera,
             camera_controller,
@@ -429,7 +439,7 @@ impl State {
                     true => &self
                         .default_material
                         .as_ref()
-                        .unwrap_or(&model.materials[0]),
+                        .unwrap_or(&self.fallback_material),
                     false => &model.materials[0],
                 };
 
