@@ -32,7 +32,6 @@ pub struct State {
     pub move_offset: f32,
     models: model_collection::ModelCollection,
     depth_texture: texture::Texture,
-    texture_bind_group_layout: BindGroupLayout,
     cuboid_id: Option<u8>,
 }
 
@@ -101,55 +100,9 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let default_texture_bytes = include_bytes!("../../data/sarah.jpg");
-        let default_texture =
-            texture::Texture::from_bytes(&device, &queue, default_texture_bytes, "sarah").unwrap();
-
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        // This should match the filterable field of the
-                        // corresponding Texture entry above.
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-                label: Some("texture_bind_group_layout"),
-            });
-
-        let diffuse_bind_group_sarah = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &texture_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&default_texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&default_texture.sampler),
-                },
-            ],
-            label: Some("diffuse_bind_group_sarah"),
-        });
-
-        let default_material = material::Material {
-            name: "default_material".to_string(),
-            diffuse_texture: default_texture,
-            bind_group: diffuse_bind_group_sarah,
-        };
+        let default_material =
+            material::Material::load("default_material".to_string(), "sarah.jpg", &device, &queue)
+                .await;
 
         let camera = camera::Camera {
             eye: (0.0, 1.0, 2.0).into(),
@@ -207,7 +160,10 @@ impl State {
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout],
+                bind_group_layouts: &[
+                    &texture::Texture::create_texture_bind_group_layout(&device),
+                    &camera_bind_group_layout,
+                ],
                 push_constant_ranges: &[],
             });
 
@@ -289,18 +245,8 @@ impl State {
         });
 
         let mut models = model_collection::ModelCollection::new();
-        let cube_descriptor = model::LoadModelDescriptor::new(
-            "cube.obj",
-            &device,
-            &queue,
-            &texture_bind_group_layout,
-        );
-        let cuboid_descriptor = model::LoadModelDescriptor::new(
-            "cuboid.obj",
-            &device,
-            &queue,
-            &texture_bind_group_layout,
-        );
+        let cube_descriptor = model::LoadModelDescriptor::new("cube.obj", &device, &queue);
+        let cuboid_descriptor = model::LoadModelDescriptor::new("cuboid.obj", &device, &queue);
         let load_model = |id| {
             let model = pollster::block_on(model::load_model(cube_descriptor, id));
             let model = model.unwrap();
@@ -334,7 +280,6 @@ impl State {
             move_offset,
             models,
             depth_texture,
-            texture_bind_group_layout,
             cuboid_id,
         }
     }
@@ -426,12 +371,8 @@ impl State {
 
     async fn add_cuboid(&mut self) {
         let load_model = |id| {
-            let model_descriptor = model::LoadModelDescriptor::new(
-                "cuboid.obj",
-                &self.device,
-                &self.queue,
-                &self.texture_bind_group_layout,
-            );
+            let model_descriptor =
+                model::LoadModelDescriptor::new("cuboid.obj", &self.device, &self.queue);
             let model = pollster::block_on(model::load_model(model_descriptor, id));
             let model = model.unwrap();
             return model;

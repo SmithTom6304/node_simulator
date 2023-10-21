@@ -18,7 +18,6 @@ pub struct LoadModelDescriptor<'a> {
     pub file_name: &'a str,
     pub device: &'a wgpu::Device,
     pub queue: &'a wgpu::Queue,
-    pub layout: &'a wgpu::BindGroupLayout,
 }
 
 #[repr(C)]
@@ -155,13 +154,11 @@ impl<'a> LoadModelDescriptor<'a> {
         file_name: &'a str,
         device: &'a wgpu::Device,
         queue: &'a wgpu::Queue,
-        layout: &'a wgpu::BindGroupLayout,
     ) -> LoadModelDescriptor<'a> {
         LoadModelDescriptor {
             file_name,
             device,
             queue,
-            layout,
         }
     }
 }
