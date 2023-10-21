@@ -435,13 +435,15 @@ impl State {
             for model in self.models.iter() {
                 let mesh = &model.meshes[0];
 
-                let material = match self.use_default_material {
-                    true => &self
-                        .default_material
-                        .as_ref()
-                        .unwrap_or(&self.fallback_material),
-                    false => &model.materials[0],
-                };
+                let material =
+                    if self.use_default_material == false && model.materials.is_empty() == false {
+                        &model.materials[0]
+                    } else {
+                        &self
+                            .default_material
+                            .as_ref()
+                            .unwrap_or(&self.fallback_material)
+                    };
 
                 render_pass.draw_mesh_instanced(
                     mesh,
