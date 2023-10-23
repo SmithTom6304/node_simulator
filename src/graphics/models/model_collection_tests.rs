@@ -12,13 +12,11 @@ fn is_empty_on_creation() {
 
 fn load_model(id: model::ModelId) -> super::model::Model {
     let instance_data = instance_data::InstanceData::new();
-    let texture_bind_group_layout = texture_bind_group_layout::new(&instance_data.device());
 
     let cube_descriptor = model::LoadModelDescriptor::new(
         "cube.obj",
         &instance_data.device(),
         &instance_data.queue(),
-        &texture_bind_group_layout,
     );
 
     let model = pollster::block_on(model::load_model(cube_descriptor, id));
