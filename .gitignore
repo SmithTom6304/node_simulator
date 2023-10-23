@@ -2,3 +2,4 @@
 /.vscode
 /mutants.out
 /mutants.out.old
+.DS_Store

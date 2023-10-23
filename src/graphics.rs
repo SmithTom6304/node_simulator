@@ -26,10 +26,13 @@ pub fn get_event_loop() -> event_loop::EventLoop<node_events::NodeEvent> {
     event_loop_builder.build()
 }
 
-pub async fn run(event_loop: event_loop::EventLoop<node_events::NodeEvent>) {
+pub async fn run(
+    event_loop: event_loop::EventLoop<node_events::NodeEvent>,
+    default_texture_path: Option<String>,
+) {
     let window = window::WindowBuilder::new().build(&event_loop).unwrap();
 
-    let mut state = State::new(window).await;
+    let mut state = State::new(window, default_texture_path).await;
 
     event_loop.run(move |event, _, control_flow| match event {
         event::Event::WindowEvent {

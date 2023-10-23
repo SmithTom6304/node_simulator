@@ -14,7 +14,7 @@ mod resources;
 const QUIT_COMMAND: &str = ":q";
 const ADD_NODE_COMMAND: &str = ":a";
 
-pub fn run() {
+pub fn run(default_texture_path: Option<String>) {
     graphics::init();
     let event_loop = graphics::get_event_loop();
     let event_loop_proxy = event_loop.create_proxy();
@@ -24,7 +24,7 @@ pub fn run() {
         help();
         read_input(event_loop_proxy);
     });
-    pollster::block_on(graphics::run(event_loop));
+    pollster::block_on(graphics::run(event_loop, default_texture_path));
 }
 
 fn help() {

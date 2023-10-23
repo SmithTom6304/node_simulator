@@ -17,6 +17,7 @@ cgmath = "0.18"
 tobj = { version = "3.2.1", features = [
     "async",
 ]}
+clap = { version = "4.4", features = [ "derive" ] }
 
 [dependencies.image]
 version = "0.24"

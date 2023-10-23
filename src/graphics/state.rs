@@ -6,7 +6,7 @@ use winit::{event::WindowEvent, window::Window};
 
 use super::camera;
 use super::instances::{instance, instance_collection};
-use super::models::{model, model_collection};
+use super::models::{material, model, model_collection};
 use super::texture;
 use super::vertex::Vertex;
 
@@ -20,9 +20,9 @@ pub struct State {
     pub size: winit::dpi::PhysicalSize<u32>,
     pub window: Window,
     pub render_pipeline: wgpu::RenderPipeline,
-    diffuse_bind_groups: [wgpu::BindGroup; 1],
-    diffuse_textures: [texture::Texture; 1],
-    pub texture_index: usize,
+    fallback_material: material::Material,
+    default_material: Option<material::Material>,
+    use_default_material: bool,
     camera: camera::Camera,
     camera_controller: camera::CameraController,
     camera_uniform: camera::CameraUniform,
@@ -31,7 +31,6 @@ pub struct State {
     pub move_offset: f32,
     models: model_collection::ModelCollection,
     depth_texture: texture::Texture,
-    texture_bind_group_layout: BindGroupLayout,
     instance_collections: Vec<instance_collection::InstanceCollection>,
 }
 
@@ -39,7 +38,7 @@ const NUM_INSTANCES_PER_ROW: u32 = 10;
 
 impl State {
     // Creating some of the wgpu types requires async code
-    pub async fn new(window: Window) -> Self {
+    pub async fn new(window: Window, default_texture_path: Option<String>) -> Self {
         let size = window.inner_size();
 
         // The instance is a handle to our GPU
@@ -100,49 +99,37 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let diffuse_bytes_sarah = include_bytes!("../../data/sarah.jpg");
-        let diffuse_texture_sarah =
-            texture::Texture::from_bytes(&device, &queue, diffuse_bytes_sarah, "sarah").unwrap();
+        let default_material: Option<material::Material> = match default_texture_path {
+            Some(path) => {
+                let material = material::Material::load(
+                    "default_material".to_string(),
+                    &path,
+                    &device,
+                    &queue,
+                )
+                .await;
+                match material {
+                    Ok(mat) => (Some(mat)),
+                    Err(error) => {
+                        println!(
+                            "Error loading material from file {} - {}",
+                            &path, error.message
+                        );
+                        None
+                    }
+                }
+            }
+            None => None,
+        };
 
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        // This should match the filterable field of the
-                        // corresponding Texture entry above.
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-                label: Some("texture_bind_group_layout"),
-            });
-
-        let diffuse_bind_group_sarah = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &texture_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture_sarah.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture_sarah.sampler),
-                },
-            ],
-            label: Some("diffuse_bind_group_sarah"),
-        });
+        let fallback_material = material::Material::load(
+            "fallback_material".to_string(),
+            "fallback-texture.jpg",
+            &device,
+            &queue,
+        )
+        .await
+        .expect("Could not load fallback texture");
 
         let camera = camera::Camera {
             eye: (0.0, 1.0, 2.0).into(),
@@ -200,7 +187,10 @@ impl State {
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout],
+                bind_group_layouts: &[
+                    &texture::Texture::create_texture_bind_group_layout(&device),
+                    &camera_bind_group_layout,
+                ],
                 push_constant_ranges: &[],
             });
 
@@ -286,12 +276,7 @@ impl State {
         ];
 
         let mut models = model_collection::ModelCollection::new();
-        let cube_descriptor = model::LoadModelDescriptor::new(
-            "cube.obj",
-            &device,
-            &queue,
-            &texture_bind_group_layout,
-        );
+        let cube_descriptor = model::LoadModelDescriptor::new("cube.obj", &device, &queue);
         let load_model = |id| {
             let model = pollster::block_on(model::load_model(cube_descriptor, id));
             let model = model.unwrap();
@@ -309,12 +294,7 @@ impl State {
             .into_iter()
             .for_each(|instance| cube_instance_collection.add(instance));
 
-        let cuboid_descriptor = model::LoadModelDescriptor::new(
-            "cuboid.obj",
-            &device,
-            &queue,
-            &texture_bind_group_layout,
-        );
+        let cuboid_descriptor = model::LoadModelDescriptor::new("cuboid.obj", &device, &queue);
         let load_model = |id| {
             let model = pollster::block_on(model::load_model(cuboid_descriptor, id));
             let model = model.unwrap();
@@ -343,9 +323,9 @@ impl State {
             config,
             size,
             render_pipeline,
-            diffuse_bind_groups: [diffuse_bind_group_sarah],
-            diffuse_textures: [diffuse_texture_sarah],
-            texture_index: 0,
+            fallback_material,
+            default_material,
+            use_default_material: false,
             camera,
             camera_controller,
             camera_buffer,
@@ -354,7 +334,6 @@ impl State {
             move_offset,
             models,
             depth_texture,
-            texture_bind_group_layout,
             instance_collections,
         }
     }
@@ -378,6 +357,15 @@ impl State {
         self.camera_controller.process_events(event);
         match event {
             WindowEvent::CursorMoved { .. } => {}
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::D),
+                        ..
+                    },
+                ..
+            } => self.use_default_material = !self.use_default_material,
             _ => (),
         }
         false
@@ -462,7 +450,6 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_bind_group(0, &self.diffuse_bind_groups[self.texture_index], &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
 
             render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
@@ -478,7 +465,24 @@ impl State {
                     .find(|value| value.0 == id)
                     .unwrap()
                     .1;
-                render_pass.draw_mesh_instanced(&model.meshes[0], range.clone());
+                let mesh = &model.meshes[0];
+
+                let material =
+                    if self.use_default_material == false && model.materials.is_empty() == false {
+                        &model.materials[0]
+                    } else {
+                        &self
+                            .default_material
+                            .as_ref()
+                            .unwrap_or(&self.fallback_material)
+                    };
+
+                render_pass.draw_mesh_instanced(
+                    mesh,
+                    material,
+                    range.clone(),
+                    &self.camera_bind_group,
+                );
             }
         }
 
