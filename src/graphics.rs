@@ -12,7 +12,7 @@ mod camera;
 mod instances;
 mod models;
 pub mod node_events;
-mod state;
+pub mod state;
 mod texture;
 mod vertex;
 
@@ -26,14 +26,14 @@ pub fn get_event_loop() -> event_loop::EventLoop<node_events::NodeEvent> {
     event_loop_builder.build()
 }
 
+pub fn create_window(event_loop: &event_loop::EventLoop<node_events::NodeEvent>) -> window::Window {
+    window::WindowBuilder::new().build(&event_loop).unwrap()
+}
+
 pub async fn run(
     event_loop: event_loop::EventLoop<node_events::NodeEvent>,
-    default_texture_path: Option<String>,
+    mut state: state::State,
 ) {
-    let window = window::WindowBuilder::new().build(&event_loop).unwrap();
-
-    let mut state = State::new(window, default_texture_path).await;
-
     event_loop.run(move |event, _, control_flow| match event {
         event::Event::WindowEvent {
             ref event,
@@ -95,7 +95,7 @@ pub async fn run(
             node_events::NodeEvent::Close => {
                 *control_flow = event_loop::ControlFlow::Exit;
             }
-            node_events::NodeEvent::Add(node) => add_node(&node),
+            node_events::NodeEvent::Add(node) => state.add_node_to_scene(node),
             _ => {}
         },
         event::Event::MainEventsCleared => {

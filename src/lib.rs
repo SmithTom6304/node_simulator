@@ -2,8 +2,8 @@ use std::io;
 use std::thread;
 
 use graphics::node_events;
+use graphics::state;
 use node::NodePosition;
-use winit::event;
 use winit::event_loop;
 
 mod graphics;
@@ -18,13 +18,15 @@ pub fn run(default_texture_path: Option<String>) {
     graphics::init();
     let event_loop = graphics::get_event_loop();
     let event_loop_proxy = event_loop.create_proxy();
+    let window = graphics::create_window(&event_loop);
+    let mut state = pollster::block_on(state::State::new(window, default_texture_path));
 
     thread::spawn(|| {
         println!("Running node_simulator...");
         help();
         read_input(event_loop_proxy);
     });
-    pollster::block_on(graphics::run(event_loop, default_texture_path));
+    pollster::block_on(graphics::run(event_loop, state));
 }
 
 fn help() {

@@ -1,10 +1,12 @@
 use bytemuck;
 use wgpu::util::DeviceExt;
-use wgpu::BindGroupLayout;
 use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
 use winit::{event::WindowEvent, window::Window};
 
+use crate::node::Node;
+
 use super::camera;
+use super::instances::instance_collection::InstanceCollection;
 use super::instances::{instance, instance_collection};
 use super::models::{material, model, model_collection};
 use super::texture;
@@ -379,31 +381,21 @@ impl State {
             0,
             bytemuck::cast_slice(&[self.camera_uniform]),
         );
-
-        // if self.move_offset != 0.0 {
-        //     self.update_instances()
-        // }
     }
 
-    // fn update_instances(&mut self) {
-    //     for instance in self.instances.iter_mut() {
-    //         instance.position.z += self.move_offset as f32;
-    //     }
-
-    //     let instance_data = self
-    //         .instances
-    //         .iter()
-    //         .map(instance::Instance::to_raw)
-    //         .collect::<Vec<_>>();
-    //     self.instance_buffer = self
-    //         .device
-    //         .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-    //             label: Some("Instance Buffer"),
-    //             contents: bytemuck::cast_slice(&instance_data),
-    //             usage: wgpu::BufferUsages::VERTEX,
-    //         });
-    //     self.move_offset = 0.0;
-    // }
+    pub fn add_node_to_scene(&mut self, node: Node) {
+        // TODO Need to determine _what_ collection here
+        let collection: &mut InstanceCollection = &mut self.instance_collections[0];
+        let new_instance = instance::Instance {
+            position: cgmath::Vector3::new(
+                node.position.x as f32,
+                0 as f32,
+                node.position.y as f32,
+            ),
+            rotation: cgmath::Quaternion::zero(),
+        };
+        collection.add(new_instance);
+    }
 
     pub fn render(&mut self, clear_colour: wgpu::Color) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
