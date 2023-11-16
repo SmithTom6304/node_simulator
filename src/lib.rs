@@ -48,7 +48,7 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEven
             Some(command_name) if *command_name == add_command.get_name() => {
                 let args = add_command.clone().try_get_matches_from(input);
                 match args {
-                    Ok(result) => try_execute_add_command(result),
+                    Ok(result) => try_execute_add_command(result, &event_loop_proxy),
                     Err(err) => println!("{}", err),
                 }
             }
@@ -60,7 +60,21 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEven
     }
 }
 
-fn try_execute_add_command(args: ArgMatches) {
+fn try_execute_add_command(
+    args: ArgMatches,
+    event_loop_proxy: &event_loop::EventLoopProxy<node_events::NodeEvent>,
+) {
     let id = args.get_one::<String>("id").expect("ID arg was missing");
-    println!("{}", id);
+    let id = id.parse::<u32>();
+    if id.is_err() {
+        println!("ID must be a u32");
+        return;
+    }
+    let id = node::NodeId(id.unwrap());
+    let node = node::Node::new(id, node::NodePosition { x: 5, y: 7 });
+    let result = event_loop_proxy.send_event(node_events::NodeEvent::Add(node));
+    let _ = match result {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
+    };
 }
