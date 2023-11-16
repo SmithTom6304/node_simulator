@@ -71,7 +71,37 @@ fn try_execute_add_command(
         return;
     }
     let id = node::NodeId(id.unwrap());
-    let node = node::Node::new(id, node::NodePosition { x: 5, y: 7 });
+
+    let position = args.get_one::<String>("position");
+    let position = match position {
+        Some(pos_string) => {
+            let pos_string = pos_string.split(',');
+            let positions: Vec<Result<i32, std::num::ParseIntError>> =
+                pos_string.map(|s| s.parse::<i32>()).collect();
+            if positions.len() != 2 {
+                println!("Position must have 2 values");
+                return;
+            }
+            let x = match &positions[0] {
+                Ok(number) => *number,
+                Err(_) => {
+                    println!("Position x must be an i32");
+                    return;
+                }
+            };
+            let y = match &positions[1] {
+                Ok(number) => *number,
+                Err(_) => {
+                    println!("Position y must be an i32");
+                    return;
+                }
+            };
+            node::NodePosition { x, y }
+        }
+        None => node::NodePosition { x: 0, y: 0 },
+    };
+
+    let node = node::Node::new(id, position);
     let result = event_loop_proxy.send_event(node_events::NodeEvent::Add(node));
     let _ = match result {
         Ok(_) => (),
