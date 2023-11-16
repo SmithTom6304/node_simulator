@@ -11,9 +11,6 @@ mod node;
 mod node_collection;
 mod resources;
 
-const QUIT_COMMAND: &str = ":q";
-const ADD_NODE_COMMAND: &str = ":a";
-
 pub fn run(default_texture_path: Option<String>) {
     graphics::init();
     let event_loop = graphics::get_event_loop();
@@ -40,23 +37,14 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEven
         io::stdin()
             .read_line(&mut input)
             .expect("Failed to read input");
-        let input = input.trim();
+        let mut input = input.trim().split_ascii_whitespace().peekable();
 
-        match input {
-            QUIT_COMMAND => {
-                event_loop_proxy
-                    .send_event(node_events::NodeEvent::Close)
-                    .ok();
-                break;
-            }
-            ADD_NODE_COMMAND => {
-                let node = node::Node::new(NodePosition { x: 5, y: 7 });
-                event_loop_proxy
-                    .send_event(node_events::NodeEvent::Add(node))
-                    .ok();
-            }
-            ":h" => help(),
-            _ => (),
-        }
+        match input.peek() {
+            None => continue,
+            Some(command_name) => println!(
+                "Did not recognize command {}. Enter HELP for help.",
+                *command_name
+            ),
+        };
     }
 }
