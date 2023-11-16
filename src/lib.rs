@@ -1,6 +1,7 @@
 use std::io;
 use std::thread;
 
+use clap::ArgMatches;
 use graphics::node_events;
 use graphics::state;
 use node::NodePosition;
@@ -10,6 +11,8 @@ mod graphics;
 mod node;
 mod node_collection;
 mod resources;
+
+mod commands;
 
 pub fn run(default_texture_path: Option<String>) {
     graphics::init();
@@ -32,6 +35,7 @@ fn help() {
 }
 
 fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEvent>) {
+    let add_command = commands::CommandGenerator::add_command();
     loop {
         let mut input = String::new();
         io::stdin()
@@ -41,10 +45,22 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEven
 
         match input.peek() {
             None => continue,
+            Some(command_name) if *command_name == add_command.get_name() => {
+                let args = add_command.clone().try_get_matches_from(input);
+                match args {
+                    Ok(result) => try_execute_add_command(result),
+                    Err(err) => println!("{}", err),
+                }
+            }
             Some(command_name) => println!(
                 "Did not recognize command {}. Enter HELP for help.",
                 *command_name
             ),
         };
     }
+}
+
+fn try_execute_add_command(args: ArgMatches) {
+    let id = args.get_one::<String>("id").expect("ID arg was missing");
+    println!("{}", id);
 }
