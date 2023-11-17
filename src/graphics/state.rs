@@ -4,6 +4,7 @@ use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
 use winit::{event::WindowEvent, window::Window};
 
 use crate::node::Node;
+use crate::node_collection;
 
 use super::camera;
 use super::instances::instance_collection::InstanceCollection;
@@ -34,6 +35,7 @@ pub struct State {
     models: model_collection::ModelCollection,
     depth_texture: texture::Texture,
     instance_collections: Vec<instance_collection::InstanceCollection>,
+    node_collection: node_collection::NodeCollection,
 }
 
 const NUM_INSTANCES_PER_ROW: u32 = 10;
@@ -316,6 +318,7 @@ impl State {
             .for_each(|instance| cuboid_instance_collection.add(instance));
 
         let instance_collections = vec![cube_instance_collection, cuboid_instance_collection];
+        let node_collection = node_collection::NodeCollection::new();
 
         Self {
             window,
@@ -337,6 +340,7 @@ impl State {
             models,
             depth_texture,
             instance_collections,
+            node_collection,
         }
     }
 
@@ -385,7 +389,17 @@ impl State {
 
     pub fn add_node_to_scene(&mut self, node: Node) {
         // TODO Need to determine _what_ collection here
-        let collection: &mut InstanceCollection = &mut self.instance_collections[0];
+        let instance_collection: &mut InstanceCollection = &mut self.instance_collections[0];
+        let node_collection = &mut self.node_collection;
+
+        if node_collection.iter().any(|n| n.id == node.id) {
+            println!(
+                "Node with ID {} has already been added to the scene",
+                node.id
+            );
+            return;
+        }
+
         let new_instance = instance::Instance {
             position: cgmath::Vector3::new(
                 node.position.x as f32,
@@ -394,7 +408,9 @@ impl State {
             ),
             rotation: cgmath::Quaternion::zero(),
         };
-        collection.add(new_instance);
+
+        node_collection.add(node);
+        instance_collection.add(new_instance);
     }
 
     pub fn render(&mut self, clear_colour: wgpu::Color) -> Result<(), wgpu::SurfaceError> {

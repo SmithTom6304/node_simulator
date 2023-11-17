@@ -8,6 +8,12 @@ pub struct Node {
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub struct NodeId(pub u32);
 
+impl fmt::Display for NodeId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 pub struct NodePosition {
     pub x: i32,
     pub y: i32,
