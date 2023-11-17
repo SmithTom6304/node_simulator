@@ -14,6 +14,10 @@ impl NodeCollection {
         self.nodes.push(node);
     }
 
+    pub fn remove(&mut self, id: node::NodeId) {
+        self.nodes.retain(|node| node.id != id)
+    }
+
     // pub fn find(&self, id: model::ModelId) -> Option<&model::Model> {
     //     self.iter().find(|model| model.id == id)
     // }
