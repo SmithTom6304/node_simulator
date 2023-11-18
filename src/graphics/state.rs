@@ -41,8 +41,6 @@ pub struct State {
     node_to_instance_lookup: HashMap<node::NodeId, instance::Instance>,
 }
 
-const NUM_INSTANCES_PER_ROW: u32 = 10;
-
 impl State {
     // Creating some of the wgpu types requires async code
     pub async fn new(window: Window, default_texture_path: Option<String>) -> Self {
@@ -116,7 +114,7 @@ impl State {
                 )
                 .await;
                 match material {
-                    Ok(mat) => (Some(mat)),
+                    Ok(mat) => Some(mat),
                     Err(error) => {
                         println!(
                             "Error loading material from file {} - {}",
@@ -242,8 +240,6 @@ impl State {
             multiview: None,
         });
         let move_offset = 0.0;
-
-        const SPACE_BETWEEN: f32 = 3.0;
 
         let rotation =
             cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0));
