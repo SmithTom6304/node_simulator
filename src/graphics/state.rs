@@ -241,43 +241,6 @@ impl State {
         });
         let move_offset = 0.0;
 
-        let rotation =
-            cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0));
-        let cube_positions = vec![
-            cgmath::Vector3 {
-                x: 1.0,
-                y: 0.0,
-                z: 1.0,
-            },
-            cgmath::Vector3 {
-                x: 4.0,
-                y: 0.0,
-                z: 1.0,
-            },
-            cgmath::Vector3 {
-                x: 7.0,
-                y: 0.0,
-                z: 1.0,
-            },
-        ];
-        let cuboid_positions = vec![
-            cgmath::Vector3 {
-                x: 1.0,
-                y: 0.0,
-                z: 4.0,
-            },
-            cgmath::Vector3 {
-                x: 4.0,
-                y: 0.0,
-                z: 4.0,
-            },
-            cgmath::Vector3 {
-                x: 7.0,
-                y: 0.0,
-                z: 4.0,
-            },
-        ];
-
         let mut models = model_collection::ModelCollection::new();
         let cube_descriptor = model::LoadModelDescriptor::new("cube.obj", &device, &queue);
         let load_model = |id| {
@@ -286,37 +249,9 @@ impl State {
             return model;
         };
         let cube_id = models.add(load_model);
+        let cube_instance_collection = instance_collection::InstanceCollection::new(cube_id);
 
-        let cube_instances: Vec<instance::Instance> = cube_positions
-            .into_iter()
-            .map(move |position| instance::Instance { position, rotation })
-            .collect();
-
-        let mut cube_instance_collection = instance_collection::InstanceCollection::new(cube_id);
-        cube_instances
-            .into_iter()
-            .for_each(|instance| cube_instance_collection.add(instance));
-
-        let cuboid_descriptor = model::LoadModelDescriptor::new("cuboid.obj", &device, &queue);
-        let load_model = |id| {
-            let model = pollster::block_on(model::load_model(cuboid_descriptor, id));
-            let model = model.unwrap();
-            return model;
-        };
-        let cuboid_id = models.add(load_model);
-
-        let cuboid_instances: Vec<instance::Instance> = cuboid_positions
-            .into_iter()
-            .map(move |position| instance::Instance { position, rotation })
-            .collect();
-
-        let mut cuboid_instance_collection =
-            instance_collection::InstanceCollection::new(cuboid_id);
-        cuboid_instances
-            .into_iter()
-            .for_each(|instance| cuboid_instance_collection.add(instance));
-
-        let instance_collections = vec![cube_instance_collection, cuboid_instance_collection];
+        let instance_collections = vec![cube_instance_collection];
         let node_collection = node_collection::NodeCollection::new();
         let node_to_instance_lookup: HashMap<node::NodeId, instance::Instance> = HashMap::new();
 
