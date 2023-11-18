@@ -1,5 +1,5 @@
-extern crate utilities;
-use utilities::common::{instance_data, texture_bind_group_layout};
+extern crate utils;
+use utils::common::{instance_data, texture_bind_group_layout};
 
 use super::*;
 
