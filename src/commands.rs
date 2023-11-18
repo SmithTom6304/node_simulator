@@ -7,6 +7,7 @@ impl CommandGenerator {
         Command::new("--help")
             .subcommand(Self::add_command())
             .subcommand(Self::remove_command())
+            .subcommand(Self::close_command())
             .disable_help_subcommand(true)
             .help_template("Commands:\n{subcommands}")
     }
@@ -38,5 +39,9 @@ impl CommandGenerator {
         Command::new("REMOVE")
             .arg(id_arg)
             .about("Remove a node from the simulation")
+    }
+
+    pub fn close_command() -> clap::Command {
+        Command::new("CLOSE").about("Close the program")
     }
 }
