@@ -6,6 +6,7 @@ impl CommandGenerator {
     pub fn help_command() -> clap::Command {
         Command::new("--help")
             .subcommand(Self::add_command())
+            .subcommand(Self::remove_command())
             .disable_help_subcommand(true)
             .help_template("Commands:\n{subcommands}")
     }
@@ -25,6 +26,17 @@ impl CommandGenerator {
         Command::new("ADD")
             .arg(id_arg)
             .arg(position_arg)
+            .about("Add a node to the simulation")
+    }
+
+    pub fn remove_command() -> clap::Command {
+        let id_arg = Arg::new("id")
+            .long("id")
+            .help("ID of the node to remove")
+            .required(true);
+
+        Command::new("REMOVE")
+            .arg(id_arg)
             .about("Add a node to the simulation")
     }
 }

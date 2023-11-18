@@ -89,6 +89,7 @@ pub async fn run(
                 *control_flow = event_loop::ControlFlow::Exit;
             }
             node_events::NodeEvent::Add(node) => state.add_node_to_scene(node),
+            node_events::NodeEvent::Remove(id) => state.remove_node_from_scene(id),
             _ => {}
         },
         event::Event::MainEventsCleared => {

@@ -5,7 +5,7 @@ pub struct Node {
     pub position: NodePosition,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Copy, Clone, Debug)]
 pub struct NodeId(pub u32);
 
 impl fmt::Display for NodeId {
