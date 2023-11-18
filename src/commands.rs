@@ -37,6 +37,6 @@ impl CommandGenerator {
 
         Command::new("REMOVE")
             .arg(id_arg)
-            .about("Add a node to the simulation")
+            .about("Remove a node from the simulation")
     }
 }
