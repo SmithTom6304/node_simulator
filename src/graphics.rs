@@ -1,12 +1,5 @@
-use winit::{
-    event,
-    event_loop::{self, EventLoopBuilder},
-    window,
-};
-
-use self::state::State;
-
 use super::node;
+use winit::{event, event_loop, window};
 
 mod camera;
 mod instances;
@@ -105,8 +98,4 @@ pub async fn run(
         }
         _ => {}
     });
-}
-
-pub fn add_node(node: &node::Node) {
-    println!("Added Node at {0}", node.position);
 }
