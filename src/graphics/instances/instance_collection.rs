@@ -22,11 +22,9 @@ impl InstanceCollection {
         self.instances.push(instance);
     }
 
-    // pub fn remove(&mut self, model_id: model::ModelId) -> bool {
-    //     let size_before = self.models.len();
-    //     self.models.retain(|model| model.id != model_id);
-    //     self.models.len() != size_before
-    // }
+    pub fn remove(&mut self, instance: instance::Instance) {
+        self.instances.retain(|ins| ins != &instance);
+    }
 
     pub fn iter(&self) -> std::slice::Iter<'_, instance::Instance> {
         self.instances.iter()

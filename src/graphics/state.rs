@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+
 use bytemuck;
 use wgpu::util::DeviceExt;
 use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
 use winit::{event::WindowEvent, window::Window};
 
-use crate::node::Node;
+use crate::node;
 use crate::node_collection;
 
 use super::camera;
@@ -36,6 +38,7 @@ pub struct State {
     depth_texture: texture::Texture,
     instance_collections: Vec<instance_collection::InstanceCollection>,
     node_collection: node_collection::NodeCollection,
+    node_to_instance_lookup: HashMap<node::NodeId, instance::Instance>,
 }
 
 const NUM_INSTANCES_PER_ROW: u32 = 10;
@@ -319,6 +322,7 @@ impl State {
 
         let instance_collections = vec![cube_instance_collection, cuboid_instance_collection];
         let node_collection = node_collection::NodeCollection::new();
+        let node_to_instance_lookup: HashMap<node::NodeId, instance::Instance> = HashMap::new();
 
         Self {
             window,
@@ -341,6 +345,7 @@ impl State {
             depth_texture,
             instance_collections,
             node_collection,
+            node_to_instance_lookup,
         }
     }
 
@@ -387,11 +392,10 @@ impl State {
         );
     }
 
-    pub fn add_node_to_scene(&mut self, node: Node) {
+    pub fn add_node_to_scene(&mut self, node: node::Node) {
         // TODO Need to determine _what_ collection here
         let instance_collection: &mut InstanceCollection = &mut self.instance_collections[0];
         let node_collection = &mut self.node_collection;
-
         if node_collection.iter().any(|n| n.id == node.id) {
             println!(
                 "Node with ID {} has already been added to the scene",
@@ -409,8 +413,24 @@ impl State {
             rotation: cgmath::Quaternion::zero(),
         };
 
+        self.node_to_instance_lookup.insert(node.id, new_instance);
         node_collection.add(node);
         instance_collection.add(new_instance);
+    }
+
+    pub fn remove_node_from_scene(&mut self, id: node::NodeId) {
+        let instance_collection: &mut InstanceCollection = &mut self.instance_collections[0];
+        let node_collection = &mut self.node_collection;
+
+        if !node_collection.iter().any(|n| n.id == id) {
+            println!("No node with ID {} has been added to the scene", id);
+            return;
+        }
+
+        node_collection.remove(id);
+        let instance = self.node_to_instance_lookup.get(&id);
+        instance_collection.remove(*instance.unwrap());
+        self.node_to_instance_lookup.remove(&id);
     }
 
     pub fn render(&mut self, clear_colour: wgpu::Color) -> Result<(), wgpu::SurfaceError> {

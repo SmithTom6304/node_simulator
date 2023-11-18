@@ -30,6 +30,7 @@ pub fn run(default_texture_path: Option<String>) {
 fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEvent>) {
     let mut help_command = commands::CommandGenerator::help_command();
     let add_command = commands::CommandGenerator::add_command();
+    let remove_command = commands::CommandGenerator::remove_command();
     loop {
         let mut input = String::new();
         io::stdin()
@@ -46,6 +47,13 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEven
                 let args = add_command.clone().try_get_matches_from(input);
                 match args {
                     Ok(result) => try_execute_add_command(result, &event_loop_proxy),
+                    Err(err) => println!("{}", err),
+                }
+            }
+            Some(command_name) if *command_name == remove_command.get_name() => {
+                let args = remove_command.clone().try_get_matches_from(input);
+                match args {
+                    Ok(result) => try_execute_remove_command(result, &event_loop_proxy),
                     Err(err) => println!("{}", err),
                 }
             }
@@ -101,6 +109,24 @@ fn try_execute_add_command(
 
     let node = node::Node::new(id, position);
     let result = event_loop_proxy.send_event(node_events::NodeEvent::Add(node));
+    let _ = match result {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
+    };
+}
+
+fn try_execute_remove_command(
+    args: ArgMatches,
+    event_loop_proxy: &event_loop::EventLoopProxy<node_events::NodeEvent>,
+) {
+    let id = args.get_one::<String>("id").expect("ID arg was missing");
+    let id = id.parse::<u32>();
+    if id.is_err() {
+        println!("ID must be a u32");
+        return;
+    }
+    let id = node::NodeId(id.unwrap());
+    let result = event_loop_proxy.send_event(node_events::NodeEvent::Remove(id));
     let _ = match result {
         Ok(_) => (),
         Err(err) => println!("{}", err),
