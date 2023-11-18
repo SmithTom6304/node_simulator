@@ -44,15 +44,6 @@ pub async fn run(
                             },
                         ..
                     } => *control_flow = event_loop::ControlFlow::Exit,
-                    event::WindowEvent::KeyboardInput {
-                        input:
-                            event::KeyboardInput {
-                                state: event::ElementState::Pressed,
-                                virtual_keycode: Some(event::VirtualKeyCode::Space),
-                                ..
-                            },
-                        ..
-                    } => state.move_offset += 1.5,
 
                     event::WindowEvent::Resized(physical_size) => {
                         state.resize(*physical_size);
@@ -90,7 +81,6 @@ pub async fn run(
             }
             node_events::NodeEvent::Add(node) => state.add_node_to_scene(node),
             node_events::NodeEvent::Remove(id) => state.remove_node_from_scene(id),
-            _ => {}
         },
         event::Event::MainEventsCleared => {
             // RedrawRequested will only trigger once, unless we manually

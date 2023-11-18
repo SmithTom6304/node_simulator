@@ -31,6 +31,7 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEven
     let mut help_command = commands::CommandGenerator::help_command();
     let add_command = commands::CommandGenerator::add_command();
     let remove_command = commands::CommandGenerator::remove_command();
+    let close_command = commands::CommandGenerator::close_command();
     loop {
         let mut input = String::new();
         io::stdin()
@@ -56,6 +57,13 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEven
                     Ok(result) => try_execute_remove_command(result, &event_loop_proxy),
                     Err(err) => println!("{}", err),
                 }
+            }
+            Some(command_name) if *command_name == close_command.get_name() => {
+                let result = event_loop_proxy.send_event(node_events::NodeEvent::Close);
+                let _ = match result {
+                    Ok(_) => (),
+                    Err(err) => println!("{}", err),
+                };
             }
             Some(command_name) => println!(
                 "Did not recognize command {}. Enter {} for help.",

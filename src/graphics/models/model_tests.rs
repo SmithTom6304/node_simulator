@@ -1,8 +1,8 @@
-extern crate utilities;
+extern crate utils;
 use super::*;
 #[test]
 fn can_create_a_new_load_model_descriptor() {
-    let instance_data = utilities::common::instance_data::InstanceData::new();
+    let instance_data = utils::common::instance_data::InstanceData::new();
 
     let file_name = String::from("cube.obj");
     let device = instance_data.device();
