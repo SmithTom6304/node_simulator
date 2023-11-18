@@ -33,7 +33,6 @@ pub struct State {
     camera_uniform: camera::CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
-    pub move_offset: f32,
     models: model_collection::ModelCollection,
     depth_texture: texture::Texture,
     instance_collections: Vec<instance_collection::InstanceCollection>,
@@ -239,7 +238,6 @@ impl State {
             },
             multiview: None,
         });
-        let move_offset = 0.0;
 
         let mut models = model_collection::ModelCollection::new();
         let cube_descriptor = model::LoadModelDescriptor::new("cube.obj", &device, &queue);
@@ -271,7 +269,6 @@ impl State {
             camera_buffer,
             camera_uniform,
             camera_bind_group,
-            move_offset,
             models,
             depth_texture,
             instance_collections,
