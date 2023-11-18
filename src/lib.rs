@@ -22,18 +22,13 @@ pub fn run(default_texture_path: Option<String>) {
 
     thread::spawn(|| {
         println!("Running node_simulator...");
-        help();
         read_input(event_loop_proxy);
     });
     pollster::block_on(graphics::run(event_loop, state));
 }
 
-fn help() {
-    println!("Enter commands via the CLI.");
-    println!("Enter :h for help, :q to quit, :a to add node");
-}
-
 fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEvent>) {
+    let mut help_command = commands::CommandGenerator::help_command();
     let add_command = commands::CommandGenerator::add_command();
     loop {
         let mut input = String::new();
@@ -44,6 +39,9 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEven
 
         match input.peek() {
             None => continue,
+            Some(command_name) if *command_name == help_command.get_name() => {
+                let _ = help_command.print_help();
+            }
             Some(command_name) if *command_name == add_command.get_name() => {
                 let args = add_command.clone().try_get_matches_from(input);
                 match args {
@@ -52,8 +50,9 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEven
                 }
             }
             Some(command_name) => println!(
-                "Did not recognize command {}. Enter HELP for help.",
-                *command_name
+                "Did not recognize command {}. Enter {} for help.",
+                *command_name,
+                help_command.get_name()
             ),
         };
     }
