@@ -12,6 +12,7 @@ mod node_collection;
 mod resources;
 
 mod commands;
+mod simulation;
 
 pub fn run(default_texture_path: Option<String>) {
     graphics::init();
