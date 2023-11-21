@@ -23,7 +23,6 @@ pub struct State {
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
     pub size: winit::dpi::PhysicalSize<u32>,
-    pub window: Window,
     pub render_pipeline: wgpu::RenderPipeline,
     fallback_material: material::Material,
     default_material: Option<material::Material>,
@@ -42,7 +41,7 @@ pub struct State {
 
 impl State {
     // Creating some of the wgpu types requires async code
-    pub async fn new(window: Window, default_texture_path: Option<String>) -> Self {
+    pub async fn new(window: &Window, default_texture_path: Option<String>) -> Self {
         let size = window.inner_size();
 
         // The instance is a handle to our GPU
@@ -56,7 +55,7 @@ impl State {
         //
         // The surface needs to live as long as the window that created it.
         // State owns the window so this should be safe.
-        let surface = unsafe { instance.create_surface(&window) }.unwrap();
+        let surface = unsafe { instance.create_surface(window) }.unwrap();
 
         // Adapter - translation layer between OS native graphics API and wgpu
         let adapter = instance
@@ -254,7 +253,6 @@ impl State {
         let node_to_instance_lookup: HashMap<node::NodeId, instance::Instance> = HashMap::new();
 
         Self {
-            window,
             surface,
             device,
             queue,
@@ -275,10 +273,6 @@ impl State {
             node_collection,
             node_to_instance_lookup,
         }
-    }
-
-    pub fn window(&self) -> &Window {
-        &self.window
     }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {

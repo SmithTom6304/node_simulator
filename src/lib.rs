@@ -15,17 +15,14 @@ mod commands;
 mod simulation;
 
 pub fn run(default_texture_path: Option<String>) {
-    graphics::init();
-    let event_loop = graphics::get_event_loop();
-    let event_loop_proxy = event_loop.create_proxy();
-    let window = graphics::create_window(&event_loop);
-    let state = pollster::block_on(state::State::new(window, default_texture_path));
+    let graphics_interface = graphics::GraphicsInterface::new();
+    let event_loop_proxy = graphics_interface.event_loop.create_proxy();
 
     thread::spawn(|| {
         println!("Running node_simulator...");
         read_input(event_loop_proxy);
     });
-    pollster::block_on(graphics::run(event_loop, state));
+    graphics_interface.create_scene();
 }
 
 fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEvent>) {
