@@ -33,7 +33,7 @@ impl<'a> GraphicsInterface<'a> {
 
     pub fn create_scene(self) {
         let window = self.window;
-        let mut state = pollster::block_on(state::State::new(&window, None));
+        let mut state = state::State::new(&window, None, self.simulation);
 
         self.event_loop
             .run(move |event, _, control_flow| match event {

@@ -1,4 +1,5 @@
 use std::io;
+use std::os::unix::process::ExitStatusExt;
 use std::thread;
 
 use clap::ArgMatches;
@@ -15,7 +16,8 @@ mod commands;
 mod simulation;
 
 pub fn run(default_texture_path: Option<String>) {
-    let graphics_interface = graphics::GraphicsInterface::new();
+    let simulation = simulation::Simulation::new();
+    let graphics_interface = graphics::GraphicsInterface::new(&simulation);
     let event_loop_proxy = graphics_interface.event_loop.create_proxy();
 
     thread::spawn(|| {

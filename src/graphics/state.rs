@@ -5,8 +5,8 @@ use wgpu::util::DeviceExt;
 use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
 use winit::{event::WindowEvent, window::Window};
 
-use crate::node;
 use crate::node_collection;
+use crate::{node, simulation};
 
 use super::camera;
 use super::instances::instance_collection::InstanceCollection;
@@ -17,7 +17,7 @@ use super::vertex::Vertex;
 
 use cgmath::prelude::*;
 
-pub struct State {
+pub struct State<'a> {
     pub surface: wgpu::Surface,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -37,11 +37,15 @@ pub struct State {
     instance_collections: Vec<instance_collection::InstanceCollection>,
     node_collection: node_collection::NodeCollection,
     node_to_instance_lookup: HashMap<node::NodeId, instance::Instance>,
+    simulation: &'a simulation::Simulation,
 }
 
-impl State {
-    // Creating some of the wgpu types requires async code
-    pub async fn new(window: &Window, default_texture_path: Option<String>) -> Self {
+impl<'a> State<'a> {
+    pub fn new(
+        window: &Window,
+        default_texture_path: Option<String>,
+        simulation: &'a simulation::Simulation,
+    ) -> Self {
         let size = window.inner_size();
 
         // The instance is a handle to our GPU
@@ -58,29 +62,25 @@ impl State {
         let surface = unsafe { instance.create_surface(window) }.unwrap();
 
         // Adapter - translation layer between OS native graphics API and wgpu
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
-                force_fallback_adapter: false,
-                compatible_surface: Some(&surface),
-            })
-            .await
-            .unwrap();
+        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::default(),
+            force_fallback_adapter: false,
+            compatible_surface: Some(&surface),
+        }))
+        .unwrap();
 
         // device - Logical device requested from adapter, to look
         // like we are the only thing using the GPU
         // (Since multiple apps can use the adapter?)
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    features: wgpu::Features::empty(),
-                    limits: wgpu::Limits::downlevel_defaults(),
-                    label: None,
-                },
-                None,
-            )
-            .await
-            .unwrap();
+        let (device, queue) = pollster::block_on(adapter.request_device(
+            &wgpu::DeviceDescriptor {
+                features: wgpu::Features::empty(),
+                limits: wgpu::Limits::downlevel_defaults(),
+                label: None,
+            },
+            None,
+        ))
+        .unwrap();
 
         let surface_caps = surface.get_capabilities(&adapter);
 
@@ -104,13 +104,12 @@ impl State {
 
         let default_material: Option<material::Material> = match default_texture_path {
             Some(path) => {
-                let material = material::Material::load(
+                let material = pollster::block_on(material::Material::load(
                     "default_material".to_string(),
                     &path,
                     &device,
                     &queue,
-                )
-                .await;
+                ));
                 match material {
                     Ok(mat) => Some(mat),
                     Err(error) => {
@@ -125,13 +124,12 @@ impl State {
             None => None,
         };
 
-        let fallback_material = material::Material::load(
+        let fallback_material = pollster::block_on(material::Material::load(
             "fallback_material".to_string(),
             "fallback-texture.jpg",
             &device,
             &queue,
-        )
-        .await
+        ))
         .expect("Could not load fallback texture");
 
         let camera = camera::Camera {
@@ -272,6 +270,7 @@ impl State {
             instance_collections,
             node_collection,
             node_to_instance_lookup,
+            simulation,
         }
     }
 
