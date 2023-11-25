@@ -40,8 +40,8 @@ pub struct State {
     node_to_instance_lookup: HashMap<node::NodeId, instance::Instance>,
 }
 
-impl State {
-    pub fn new(context: &sdl2::Sdl, default_texture_path: Option<String>) -> Self {
+impl super::Scene for State {
+    fn new(context: &sdl2::Sdl, default_texture_path: Option<String>) -> Self {
         // The instance is a handle to our GPU
         // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -277,7 +277,7 @@ impl State {
         }
     }
 
-    pub fn resize(&mut self, new_size: (u32, u32)) {
+    fn resize(&mut self, new_size: (u32, u32)) {
         if new_size.0 > 0 && new_size.1 > 0 {
             self.size = new_size;
             self.config.width = new_size.0;
@@ -288,7 +288,7 @@ impl State {
         }
     }
 
-    pub fn input(&mut self, event: &sdl2::event::Event) -> bool {
+    fn input(&mut self, event: &sdl2::event::Event) -> bool {
         if self.camera_controller.process_events(event) {
             return true;
         }
@@ -308,7 +308,7 @@ impl State {
         false
     }
 
-    pub fn update(&mut self) {
+    fn update(&mut self) {
         self.camera_controller.update_camera(&mut self.camera);
         self.camera_uniform.update_view_proj(&self.camera);
         self.queue.write_buffer(
@@ -318,7 +318,7 @@ impl State {
         );
     }
 
-    pub fn add_node_to_scene(&mut self, node: node::Node) {
+    fn add_node_to_scene(&mut self, node: node::Node) {
         // TODO Need to determine _what_ collection here
         let instance_collection: &mut InstanceCollection = &mut self.instance_collections[0];
         let node_collection = &mut self.node_collection;
@@ -344,7 +344,7 @@ impl State {
         instance_collection.add(new_instance);
     }
 
-    pub fn remove_node_from_scene(&mut self, id: node::NodeId) {
+    fn remove_node_from_scene(&mut self, id: node::NodeId) {
         let instance_collection: &mut InstanceCollection = &mut self.instance_collections[0];
         let node_collection = &mut self.node_collection;
 
@@ -359,7 +359,7 @@ impl State {
         self.node_to_instance_lookup.remove(&id);
     }
 
-    pub fn render(&mut self, clear_colour: wgpu::Color) -> Result<(), wgpu::SurfaceError> {
+    fn render(&mut self, clear_colour: wgpu::Color) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture

@@ -1,5 +1,7 @@
 use crate::simulation;
 
+use self::scene_implementations::Scene;
+
 use super::node;
 use sdl2;
 
@@ -21,7 +23,7 @@ pub struct GraphicsInterface<'a> {
     pub simulation: &'a simulation::Simulation,
     pub context: sdl2::Sdl,
     pub event: sdl2::EventSubsystem,
-    pub state: state::State,
+    pub scene: Box<dyn scene_implementations::Scene>,
 }
 
 enum EventStatus {
@@ -33,13 +35,14 @@ impl<'a> GraphicsInterface<'a> {
     pub fn new(simulation: &'a simulation::Simulation) -> GraphicsInterface<'a> {
         let context = sdl2::init().unwrap();
         let event = context.event().unwrap();
-        let state: state::State = state::State::new(&context, None);
+        let scene: Box<dyn scene_implementations::Scene> =
+            Box::new(state::State::new(&context, None));
 
         GraphicsInterface {
             simulation,
             context,
             event,
-            state,
+            scene,
         }
     }
 
@@ -71,7 +74,7 @@ impl<'a> GraphicsInterface<'a> {
             }
             // The rest of the game loop goes here...
 
-            let result = self.state.render(wgpu::Color {
+            let result = self.scene.render(wgpu::Color {
                 r: 0.65,
                 g: 0.68,
                 b: 0.97,
@@ -80,13 +83,13 @@ impl<'a> GraphicsInterface<'a> {
             if result.is_err() {
                 println!("Render error - {}", result.err().unwrap());
             }
-            self.state.update();
+            self.scene.update();
             ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
         }
     }
 
     fn handle_event(&mut self, event: sdl2::event::Event) -> EventStatus {
-        if self.state.input(&event) {
+        if self.scene.input(&event) {
             return EventStatus::Handled;
         }
         match event {
@@ -97,7 +100,7 @@ impl<'a> GraphicsInterface<'a> {
             } => EventStatus::Close,
             Event::Window { win_event, .. } => match win_event {
                 sdl2::event::WindowEvent::Resized(w, h) => {
-                    self.state.resize((w as u32, h as u32));
+                    self.scene.resize((w as u32, h as u32));
                     EventStatus::Handled
                 }
                 _ => EventStatus::Handled,
@@ -109,14 +112,14 @@ impl<'a> GraphicsInterface<'a> {
     fn handle_custom_event(&mut self, event: node_events::NodeEvent) -> EventStatus {
         match event.add_node_event {
             Some(add) => {
-                self.state.add_node_to_scene(add.node);
+                self.scene.add_node_to_scene(add.node);
                 return EventStatus::Handled;
             }
             None => (),
         };
         match event.remove_node_event {
             Some(remove) => {
-                self.state.remove_node_from_scene(remove.node_id);
+                self.scene.remove_node_from_scene(remove.node_id);
                 return EventStatus::Handled;
             }
             None => (),
