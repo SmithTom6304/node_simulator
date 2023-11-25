@@ -1,7 +1,13 @@
 use crate::simulation;
 
 use super::node;
-use winit::{event, event_loop, window};
+use sdl2;
+
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
+use std::sync::mpsc;
+use std::time::Duration;
 
 mod camera;
 mod instances;
@@ -12,91 +18,123 @@ mod texture;
 mod vertex;
 
 pub struct GraphicsInterface<'a> {
-    pub window: winit::window::Window,
-    pub event_loop: winit::event_loop::EventLoop<node_events::NodeEvent>,
     pub simulation: &'a simulation::Simulation,
+    pub context: sdl2::Sdl,
+    pub event: sdl2::EventSubsystem,
+    pub state: state::State<'a>,
+}
+
+enum EventStatus {
+    Handled,
+    Close,
 }
 
 impl<'a> GraphicsInterface<'a> {
     pub fn new(simulation: &'a simulation::Simulation) -> GraphicsInterface<'a> {
-        env_logger::init();
-        let event_loop =
-            event_loop::EventLoopBuilder::<node_events::NodeEvent>::with_user_event().build();
-        let window = window::WindowBuilder::new().build(&event_loop).unwrap();
+        let context = sdl2::init().unwrap();
+        let video_subsystem = context.video().unwrap();
+        let window = video_subsystem
+            .window("rust-sdl2 demo", 800, 600)
+            .position_centered()
+            .metal_view()
+            .resizable()
+            .build()
+            .unwrap();
+        let event = context.event().unwrap();
+        let state: state::State<'a> = state::State::new(window, None, simulation);
 
         GraphicsInterface {
-            window,
-            event_loop: event_loop,
             simulation,
+            context,
+            event,
+            state,
         }
     }
 
-    pub fn create_scene(self) {
-        let window = self.window;
-        let mut state = state::State::new(&window, None, self.simulation);
+    pub fn run(mut self, rx: mpsc::Receiver<node_events::NodeEvent>) {
+        let mut event_pump = self.context.event_pump().unwrap();
+        let mut i = 0;
+        'running: loop {
+            i = (i + 1) % 255;
 
-        self.event_loop
-            .run(move |event, _, control_flow| match event {
-                event::Event::WindowEvent {
-                    ref event,
-                    window_id,
-                } if window_id == window.id() => {
-                    if !state.input(event) {
-                        match event {
-                            event::WindowEvent::CloseRequested
-                            | event::WindowEvent::KeyboardInput {
-                                input:
-                                    event::KeyboardInput {
-                                        state: event::ElementState::Pressed,
-                                        virtual_keycode: Some(event::VirtualKeyCode::Escape),
-                                        ..
-                                    },
-                                ..
-                            } => *control_flow = event_loop::ControlFlow::Exit,
+            let ev = rx.try_recv();
+            match ev {
+                Ok(e) => _ = self.event.push_custom_event(e),
+                Err(_) => (),
+            }
 
-                            event::WindowEvent::Resized(physical_size) => {
-                                state.resize(*physical_size);
-                            }
-                            event::WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                                state.resize(**new_inner_size);
-                            }
-                            _ => {}
-                        }
-                    }
+            for event in event_pump.poll_iter() {
+                let status = match event.is_user_event() {
+                    true => self.handle_custom_event(
+                        event
+                            .as_user_event_type::<node_events::NodeEvent>()
+                            .expect("User event was not node event"),
+                    ),
+                    false => self.handle_event(event),
+                };
+                match status {
+                    EventStatus::Close => break 'running,
+                    EventStatus::Handled => (),
                 }
-                event::Event::RedrawRequested(window_id) if window_id == window.id() => {
-                    state.update();
-                    let clear_colour = wgpu::Color {
-                        r: 0.1,
-                        g: 0.2,
-                        b: 0.3,
-                        a: 1.0,
-                    };
-                    match state.render(clear_colour) {
-                        Ok(_) => {}
-                        // Reconfigure the surface if lost
-                        Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
-                        // The system is out of memory, we should probably quit
-                        Err(wgpu::SurfaceError::OutOfMemory) => {
-                            *control_flow = event_loop::ControlFlow::Exit
-                        }
-                        // All other errors (Outdated, Timeout) should be resolved by the next frame
-                        Err(e) => eprintln!("{:?}", e),
-                    }
-                }
-                event::Event::UserEvent(event) => match event {
-                    node_events::NodeEvent::Close => {
-                        *control_flow = event_loop::ControlFlow::Exit;
-                    }
-                    node_events::NodeEvent::Add(node) => state.add_node_to_scene(node),
-                    node_events::NodeEvent::Remove(id) => state.remove_node_from_scene(id),
-                },
-                event::Event::MainEventsCleared => {
-                    // RedrawRequested will only trigger once, unless we manually
-                    // request it.
-                    window.request_redraw();
-                }
-                _ => {}
+            }
+            // The rest of the game loop goes here...
+
+            let result = self.state.render(wgpu::Color {
+                r: 0.65,
+                g: 0.68,
+                b: 0.97,
+                a: 1.0,
             });
+            if result.is_err() {
+                println!("Render error - {}", result.err().unwrap());
+            }
+            self.state.update();
+            ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+        }
+    }
+
+    fn handle_event(&mut self, event: sdl2::event::Event) -> EventStatus {
+        if self.state.input(&event) {
+            return EventStatus::Handled;
+        }
+        match event {
+            Event::Quit { .. }
+            | Event::KeyDown {
+                keycode: Some(Keycode::Escape),
+                ..
+            } => EventStatus::Close,
+            Event::Window { win_event, .. } => match win_event {
+                sdl2::event::WindowEvent::Resized(w, h) => {
+                    self.state.resize((w as u32, h as u32));
+                    EventStatus::Handled
+                }
+                _ => EventStatus::Handled,
+            },
+            _ => EventStatus::Handled,
+        }
+    }
+
+    fn handle_custom_event(&mut self, event: node_events::NodeEvent) -> EventStatus {
+        match event.add_node_event {
+            Some(add) => {
+                self.state.add_node_to_scene(add.node);
+                return EventStatus::Handled;
+            }
+            None => (),
+        };
+        match event.remove_node_event {
+            Some(remove) => {
+                self.state.remove_node_from_scene(remove.node_id);
+                return EventStatus::Handled;
+            }
+            None => (),
+        };
+        match event.close_node_event {
+            Some(_) => {
+                return EventStatus::Close;
+            }
+            None => (),
+        };
+        EventStatus::Handled
     }
 }

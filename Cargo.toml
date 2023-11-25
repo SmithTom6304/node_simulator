@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 bytemuck = { version = "1.12", features = [ "derive" ] }
-winit = "0.28"
 env_logger = "0.10"
 log = "0.4"
 wgpu = "0.17"
@@ -23,6 +22,10 @@ clap = { version = "4.4", features = [ "derive" ] }
 version = "0.24"
 default-features = false
 features = ["png", "jpeg"]
+
+[dependencies.sdl2]
+version = "0.36"
+features = ["raw-window-handle"]
 
 [build-dependencies]
 anyhow = "1.0"
