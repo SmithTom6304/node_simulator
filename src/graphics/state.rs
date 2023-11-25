@@ -4,8 +4,8 @@ use bytemuck;
 use sdl2::keyboard::Keycode;
 use wgpu::util::DeviceExt;
 
+use crate::node;
 use crate::node_collection;
-use crate::{node, simulation};
 
 use super::camera;
 use super::instances::instance_collection::InstanceCollection;
@@ -40,9 +40,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(window: sdl2::video::Window, default_texture_path: Option<String>) -> Self {
-        let size = window.size();
-
+    pub fn new(context: &sdl2::Sdl, default_texture_path: Option<String>) -> Self {
         // The instance is a handle to our GPU
         // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -50,6 +48,14 @@ impl State {
             dx12_shader_compiler: Default::default(),
         });
 
+        let video_subsystem = context.video().unwrap();
+        let window = video_subsystem
+            .window("rust-sdl2 demo", 800, 600)
+            .position_centered()
+            .metal_view()
+            .resizable()
+            .build()
+            .unwrap();
         // # Safety
         //
         // The surface needs to live as long as the window that created it.
@@ -62,6 +68,8 @@ impl State {
             compatible_surface: Some(&surface),
         }))
         .unwrap();
+
+        let size = window.size();
 
         // device - Logical device requested from adapter, to look
         // like we are the only thing using the GPU
