@@ -3,6 +3,7 @@ use crate::simulation;
 use super::node;
 use sdl2;
 
+use scene_implementations::state;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::sync::mpsc;
@@ -12,7 +13,7 @@ mod camera;
 mod instances;
 mod models;
 pub mod node_events;
-pub mod state;
+mod scene_implementations;
 mod texture;
 mod vertex;
 

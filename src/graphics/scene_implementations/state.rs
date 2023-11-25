@@ -7,12 +7,13 @@ use wgpu::util::DeviceExt;
 use crate::node;
 use crate::node_collection;
 
-use super::camera;
-use super::instances::instance_collection::InstanceCollection;
-use super::instances::{instance, instance_collection};
-use super::models::{material, model, model_collection};
-use super::texture;
-use super::vertex::Vertex;
+use crate::graphics;
+use graphics::camera;
+use graphics::instances::instance_collection::InstanceCollection;
+use graphics::instances::{instance, instance_collection};
+use graphics::models::{material, model, model_collection};
+use graphics::texture;
+use graphics::vertex::Vertex;
 
 use cgmath::prelude::*;
 
@@ -181,7 +182,7 @@ impl State {
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shader.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../../shader.wgsl").into()),
         });
 
         let depth_texture =
