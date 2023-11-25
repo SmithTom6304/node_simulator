@@ -16,7 +16,7 @@ use super::vertex::Vertex;
 
 use cgmath::prelude::*;
 
-pub struct State<'a> {
+pub struct State {
     window: sdl2::video::Window,
     pub surface: wgpu::Surface,
     pub device: wgpu::Device,
@@ -37,15 +37,10 @@ pub struct State<'a> {
     instance_collections: Vec<instance_collection::InstanceCollection>,
     node_collection: node_collection::NodeCollection,
     node_to_instance_lookup: HashMap<node::NodeId, instance::Instance>,
-    simulation: &'a simulation::Simulation,
 }
 
-impl<'a> State<'a> {
-    pub fn new(
-        window: sdl2::video::Window,
-        default_texture_path: Option<String>,
-        simulation: &'a simulation::Simulation,
-    ) -> Self {
+impl State {
+    pub fn new(window: sdl2::video::Window, default_texture_path: Option<String>) -> Self {
         let size = window.size();
 
         // The instance is a handle to our GPU
@@ -270,7 +265,6 @@ impl<'a> State<'a> {
             instance_collections,
             node_collection,
             node_to_instance_lookup,
-            simulation,
         }
     }
 
