@@ -18,12 +18,12 @@ use cgmath::prelude::*;
 
 pub struct State {
     window: sdl2::video::Window,
-    pub surface: wgpu::Surface,
-    pub device: wgpu::Device,
-    pub queue: wgpu::Queue,
-    pub config: wgpu::SurfaceConfiguration,
-    pub size: (u32, u32),
-    pub render_pipeline: wgpu::RenderPipeline,
+    surface: wgpu::Surface,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
+    size: (u32, u32),
+    render_pipeline: wgpu::RenderPipeline,
     fallback_material: material::Material,
     default_material: Option<material::Material>,
     use_default_material: bool,
