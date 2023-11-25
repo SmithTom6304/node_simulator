@@ -1,12 +1,9 @@
 use std::io;
-use std::os::unix::process::ExitStatusExt;
 use std::sync::mpsc;
 use std::thread;
 
 use clap::ArgMatches;
 use graphics::node_events;
-use graphics::state;
-use sdl2::EventSubsystem;
 
 mod graphics;
 mod node;
@@ -18,7 +15,7 @@ mod simulation;
 
 pub fn run(default_texture_path: Option<String>) {
     let simulation = simulation::Simulation::new();
-    let mut graphics_interface = graphics::GraphicsInterface::new(&simulation);
+    let graphics_interface = graphics::GraphicsInterface::new(&simulation);
 
     let event = &graphics_interface.event;
     event
