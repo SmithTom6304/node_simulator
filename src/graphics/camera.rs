@@ -1,5 +1,4 @@
-use winit::event::WindowEvent;
-use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
+use sdl2::keyboard::Keycode;
 
 pub struct Camera {
     pub eye: cgmath::Point3<f32>,
@@ -66,40 +65,55 @@ impl CameraController {
         }
     }
 
-    pub fn process_events(&mut self, event: &WindowEvent) -> bool {
+    pub fn process_events(&mut self, event: &sdl2::event::Event) -> bool {
         match event {
-            WindowEvent::KeyboardInput {
-                input:
-                    KeyboardInput {
-                        state,
-                        virtual_keycode: Some(keycode),
-                        ..
-                    },
+            sdl2::event::Event::KeyUp {
+                keycode: Some(keycode),
                 ..
-            } => {
-                let is_pressed = *state == ElementState::Pressed;
-                match keycode {
-                    VirtualKeyCode::W | VirtualKeyCode::Up => {
-                        self.is_forward_pressed = is_pressed;
-                        true
-                    }
-                    VirtualKeyCode::A | VirtualKeyCode::Left => {
-                        self.is_left_pressed = is_pressed;
-                        true
-                    }
-                    VirtualKeyCode::S | VirtualKeyCode::Down => {
-                        self.is_backward_pressed = is_pressed;
-                        true
-                    }
-                    VirtualKeyCode::D | VirtualKeyCode::Right => {
-                        self.is_right_pressed = is_pressed;
-                        true
-                    }
-                    _ => false,
+            } => match keycode {
+                Keycode::Up => {
+                    self.is_forward_pressed = false;
+                    return true;
                 }
-            }
+                Keycode::Down => {
+                    self.is_backward_pressed = false;
+                    return true;
+                }
+                Keycode::Left => {
+                    self.is_left_pressed = false;
+                    return true;
+                }
+                Keycode::Right => {
+                    self.is_right_pressed = false;
+                    return true;
+                }
+                _ => false,
+            },
+            sdl2::event::Event::KeyDown {
+                keycode: Some(keycode),
+                ..
+            } => match keycode {
+                Keycode::Up => {
+                    self.is_forward_pressed = true;
+                    return true;
+                }
+                Keycode::Down => {
+                    self.is_backward_pressed = true;
+                    return true;
+                }
+                Keycode::Left => {
+                    self.is_left_pressed = true;
+                    return true;
+                }
+                Keycode::Right => {
+                    self.is_right_pressed = true;
+                    return true;
+                }
+                _ => false,
+            },
             _ => false,
-        }
+        };
+        false
     }
 
     pub fn update_camera(&self, camera: &mut Camera) {

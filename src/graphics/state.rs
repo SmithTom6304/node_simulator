@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
 use bytemuck;
+use sdl2::keyboard::Keycode;
 use wgpu::util::DeviceExt;
-use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
-use winit::{event::WindowEvent, window::Window};
 
 use crate::node_collection;
 use crate::{node, simulation};
@@ -18,11 +17,12 @@ use super::vertex::Vertex;
 use cgmath::prelude::*;
 
 pub struct State<'a> {
+    window: sdl2::video::Window,
     pub surface: wgpu::Surface,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
-    pub size: winit::dpi::PhysicalSize<u32>,
+    pub size: (u32, u32),
     pub render_pipeline: wgpu::RenderPipeline,
     fallback_material: material::Material,
     default_material: Option<material::Material>,
@@ -42,11 +42,11 @@ pub struct State<'a> {
 
 impl<'a> State<'a> {
     pub fn new(
-        window: &Window,
+        window: sdl2::video::Window,
         default_texture_path: Option<String>,
         simulation: &'a simulation::Simulation,
     ) -> Self {
-        let size = window.inner_size();
+        let size = window.size();
 
         // The instance is a handle to our GPU
         // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
@@ -59,8 +59,7 @@ impl<'a> State<'a> {
         //
         // The surface needs to live as long as the window that created it.
         // State owns the window so this should be safe.
-        let surface = unsafe { instance.create_surface(window) }.unwrap();
-
+        let surface = unsafe { instance.create_surface(&window) }.unwrap();
         // Adapter - translation layer between OS native graphics API and wgpu
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::default(),
@@ -94,8 +93,8 @@ impl<'a> State<'a> {
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
-            width: size.width,
-            height: size.height,
+            width: size.0,
+            height: size.1,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
@@ -251,6 +250,7 @@ impl<'a> State<'a> {
         let node_to_instance_lookup: HashMap<node::NodeId, instance::Instance> = HashMap::new();
 
         Self {
+            window,
             surface,
             device,
             queue,
@@ -274,32 +274,34 @@ impl<'a> State<'a> {
         }
     }
 
-    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
-        if new_size.width > 0 && new_size.height > 0 {
+    pub fn resize(&mut self, new_size: (u32, u32)) {
+        if new_size.0 > 0 && new_size.1 > 0 {
             self.size = new_size;
-            self.config.width = new_size.width;
-            self.config.height = new_size.height;
+            self.config.width = new_size.0;
+            self.config.height = new_size.1;
             self.surface.configure(&self.device, &self.config);
             self.depth_texture =
                 texture::Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
         }
     }
 
-    pub fn input(&mut self, event: &WindowEvent) -> bool {
-        self.camera_controller.process_events(event);
-        match event {
-            WindowEvent::CursorMoved { .. } => {}
-            WindowEvent::KeyboardInput {
-                input:
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::D),
-                        ..
-                    },
-                ..
-            } => self.use_default_material = !self.use_default_material,
-            _ => (),
+    pub fn input(&mut self, event: &sdl2::event::Event) -> bool {
+        if self.camera_controller.process_events(event) {
+            return true;
         }
+        match event {
+            sdl2::event::Event::KeyDown {
+                keycode: Some(keycode),
+                ..
+            } => match keycode {
+                Keycode::D => {
+                    self.use_default_material = !self.use_default_material;
+                    true
+                }
+                _ => false,
+            },
+            _ => false,
+        };
         false
     }
 
@@ -437,8 +439,8 @@ impl<'a> State<'a> {
 
         // submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));
-        output.present();
 
+        output.present();
         Ok(())
     }
 }
