@@ -31,16 +31,8 @@ enum EventStatus {
 impl<'a> GraphicsInterface<'a> {
     pub fn new(simulation: &'a simulation::Simulation) -> GraphicsInterface<'a> {
         let context = sdl2::init().unwrap();
-        let video_subsystem = context.video().unwrap();
-        let window = video_subsystem
-            .window("rust-sdl2 demo", 800, 600)
-            .position_centered()
-            .metal_view()
-            .resizable()
-            .build()
-            .unwrap();
         let event = context.event().unwrap();
-        let state: state::State = state::State::new(window, None);
+        let state: state::State = state::State::new(&context, None);
 
         GraphicsInterface {
             simulation,
