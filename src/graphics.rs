@@ -5,7 +5,6 @@ use sdl2;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::Color;
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -21,7 +20,7 @@ pub struct GraphicsInterface<'a> {
     pub simulation: &'a simulation::Simulation,
     pub context: sdl2::Sdl,
     pub event: sdl2::EventSubsystem,
-    pub state: state::State<'a>,
+    pub state: state::State,
 }
 
 enum EventStatus {
@@ -41,7 +40,7 @@ impl<'a> GraphicsInterface<'a> {
             .build()
             .unwrap();
         let event = context.event().unwrap();
-        let state: state::State<'a> = state::State::new(window, None, simulation);
+        let state: state::State = state::State::new(window, None);
 
         GraphicsInterface {
             simulation,
