@@ -1,4 +1,4 @@
-use crate::node;
+use crate::{node, simulation};
 
 use super::Scene;
 
@@ -18,7 +18,11 @@ impl Scene for ShimState {
     fn update(&mut self) {}
     fn add_node_to_scene(&mut self, node: node::Node) {}
     fn remove_node_from_scene(&mut self, id: node::NodeId) {}
-    fn render(&mut self, clear_colour: wgpu::Color) -> Result<(), wgpu::SurfaceError> {
+    fn render(
+        &mut self,
+        clear_colour: wgpu::Color,
+        simulation: &simulation::Simulation,
+    ) -> Result<(), wgpu::SurfaceError> {
         Ok(())
     }
     fn as_any(&self) -> &dyn std::any::Any {
