@@ -446,4 +446,8 @@ impl super::Scene for State {
         output.present();
         Ok(())
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }

@@ -13,7 +13,7 @@ mod resources;
 mod commands;
 mod simulation;
 
-pub fn run(default_texture_path: Option<String>) {
+pub fn run(_default_texture_path: Option<String>) {
     let simulation = simulation::Simulation::new();
     let graphics_interface = graphics::GraphicsInterface::new(&simulation);
 
@@ -35,6 +35,7 @@ fn read_input(tx: mpsc::Sender<node_events::NodeEvent>) {
     let add_command = commands::CommandGenerator::add_command();
     let remove_command = commands::CommandGenerator::remove_command();
     let close_command = commands::CommandGenerator::close_command();
+    let toggle_scene_command = commands::CommandGenerator::toggle_scene_command();
     loop {
         let mut input = String::new();
         io::stdin()
@@ -73,6 +74,13 @@ fn read_input(tx: mpsc::Sender<node_events::NodeEvent>) {
             }
             Some(command_name) if *command_name == close_command.get_name() => {
                 let result = tx.send(node_events::CloseEvent::new());
+                let _ = match result {
+                    Ok(_) => (),
+                    Err(err) => println!("{}", err),
+                };
+            }
+            Some(command_name) if *command_name == toggle_scene_command.get_name() => {
+                let result = tx.send(node_events::ToggleSceneEvent::new());
                 let _ = match result {
                     Ok(_) => (),
                     Err(err) => println!("{}", err),
