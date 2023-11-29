@@ -7,7 +7,6 @@ use graphics::node_events;
 
 mod graphics;
 mod node;
-mod node_collection;
 mod resources;
 
 mod commands;
