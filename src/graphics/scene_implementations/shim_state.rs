@@ -1,4 +1,4 @@
-use crate::{node, simulation};
+use crate::simulation;
 
 use super::Scene;
 

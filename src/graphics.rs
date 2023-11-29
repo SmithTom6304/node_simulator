@@ -1,7 +1,5 @@
-use crate::simulation;
-use std::any::Any;
-
 use self::scene_implementations::Scene;
+use crate::simulation;
 
 use super::node;
 use sdl2;
@@ -94,7 +92,7 @@ impl<'a> GraphicsInterface<'a> {
 
     pub fn toggle_state(&mut self) {
         self.scene = match self.scene.as_any().downcast_ref::<state::State>() {
-            Some(state) => Box::new(scene_implementations::shim_state::ShimState::new(
+            Some(_) => Box::new(scene_implementations::shim_state::ShimState::new(
                 &self.context,
                 None,
             )),
