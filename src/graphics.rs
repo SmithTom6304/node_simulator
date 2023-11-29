@@ -21,7 +21,7 @@ mod texture;
 mod vertex;
 
 pub struct GraphicsInterface<'a> {
-    pub simulation: &'a simulation::Simulation,
+    pub simulation: &'a mut simulation::Simulation,
     pub context: sdl2::Sdl,
     pub event: sdl2::EventSubsystem,
     pub scene: Box<dyn scene_implementations::Scene>,
@@ -33,7 +33,7 @@ enum EventStatus {
 }
 
 impl<'a> GraphicsInterface<'a> {
-    pub fn new(simulation: &'a simulation::Simulation) -> GraphicsInterface<'a> {
+    pub fn new(simulation: &'a mut simulation::Simulation) -> GraphicsInterface<'a> {
         let context = sdl2::init().unwrap();
         let event = context.event().unwrap();
         let scene: Box<dyn scene_implementations::Scene> =
@@ -75,12 +75,15 @@ impl<'a> GraphicsInterface<'a> {
             }
             // The rest of the game loop goes here...
 
-            let result = self.scene.render(wgpu::Color {
-                r: 0.65,
-                g: 0.68,
-                b: 0.97,
-                a: 1.0,
-            });
+            let result = self.scene.render(
+                wgpu::Color {
+                    r: 0.65,
+                    g: 0.68,
+                    b: 0.97,
+                    a: 1.0,
+                },
+                self.simulation,
+            );
             if result.is_err() {
                 println!("Render error - {}", result.err().unwrap());
             }
@@ -126,14 +129,14 @@ impl<'a> GraphicsInterface<'a> {
     fn handle_custom_event(&mut self, event: node_events::NodeEvent) -> EventStatus {
         match event.add_node_event {
             Some(add) => {
-                self.scene.add_node_to_scene(add.node);
+                self.simulation.add_node(add.node);
                 return EventStatus::Handled;
             }
             None => (),
         };
         match event.remove_node_event {
             Some(remove) => {
-                self.scene.remove_node_from_scene(remove.node_id);
+                self.simulation.remove_node(remove.node_id);
                 return EventStatus::Handled;
             }
             None => (),

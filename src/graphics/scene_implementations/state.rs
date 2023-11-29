@@ -8,6 +8,7 @@ use crate::node;
 use crate::node_collection;
 
 use crate::graphics;
+use crate::simulation;
 use graphics::camera;
 use graphics::instances::instance_collection::InstanceCollection;
 use graphics::instances::{instance, instance_collection};
@@ -34,6 +35,7 @@ pub struct State {
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
     models: model_collection::ModelCollection,
+    node_model_id: model::ModelId,
     depth_texture: texture::Texture,
     instance_collections: Vec<instance_collection::InstanceCollection>,
     node_collection: node_collection::NodeCollection,
@@ -247,6 +249,7 @@ impl super::Scene for State {
             return model;
         };
         let cube_id = models.add(load_model);
+        let node_model_id = cube_id;
         let cube_instance_collection = instance_collection::InstanceCollection::new(cube_id);
 
         let instance_collections = vec![cube_instance_collection];
@@ -274,6 +277,7 @@ impl super::Scene for State {
             instance_collections,
             node_collection,
             node_to_instance_lookup,
+            node_model_id,
         }
     }
 
@@ -359,7 +363,11 @@ impl super::Scene for State {
         self.node_to_instance_lookup.remove(&id);
     }
 
-    fn render(&mut self, clear_colour: wgpu::Color) -> Result<(), wgpu::SurfaceError> {
+    fn render(
+        &mut self,
+        clear_colour: wgpu::Color,
+        simulation: &simulation::Simulation,
+    ) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -371,9 +379,23 @@ impl super::Scene for State {
                 label: Some("Render Encoder"),
             });
 
-        let instance_data = instance_collection::InstanceCollection::get_instance_render_data(
-            &self.instance_collections,
-        );
+        let mut node_instance_collection =
+            instance_collection::InstanceCollection::new(self.node_model_id);
+        for node in simulation.nodes.iter() {
+            node_instance_collection.add(instance::Instance {
+                position: cgmath::Vector3 {
+                    x: node.position.x as f32,
+                    y: node.position.y as f32,
+                    z: 0.0,
+                },
+                rotation: cgmath::Quaternion::zero(),
+            })
+        }
+
+        let instance_data =
+            instance_collection::InstanceCollection::get_instance_render_data(&vec![
+                node_instance_collection,
+            ]);
         let instance_buffer = self
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -409,35 +431,27 @@ impl super::Scene for State {
             render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
 
             use model::DrawModel;
-            for collection in self.instance_collections.iter() {
-                let id = collection.model;
-                let model = self.models.find(id);
-                let model = model.unwrap();
-                let range = &instance_data
-                    .indexes
-                    .iter()
-                    .find(|value| value.0 == id)
-                    .unwrap()
-                    .1;
-                let mesh = &model.meshes[0];
+            let model = self.models.find(self.node_model_id);
+            let model = model.unwrap();
+            let range = &instance_data
+                .indexes
+                .iter()
+                .find(|value| value.0 == self.node_model_id)
+                .unwrap()
+                .1;
+            let mesh = &model.meshes[0];
 
-                let material =
-                    if self.use_default_material == false && model.materials.is_empty() == false {
-                        &model.materials[0]
-                    } else {
-                        &self
-                            .default_material
-                            .as_ref()
-                            .unwrap_or(&self.fallback_material)
-                    };
+            let material =
+                if self.use_default_material == false && model.materials.is_empty() == false {
+                    &model.materials[0]
+                } else {
+                    &self
+                        .default_material
+                        .as_ref()
+                        .unwrap_or(&self.fallback_material)
+                };
 
-                render_pass.draw_mesh_instanced(
-                    mesh,
-                    material,
-                    range.clone(),
-                    &self.camera_bind_group,
-                );
-            }
+            render_pass.draw_mesh_instanced(mesh, material, range.clone(), &self.camera_bind_group);
         }
 
         // submit will accept anything that implements IntoIter
