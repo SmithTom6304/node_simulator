@@ -37,9 +37,6 @@ pub struct State {
     models: model_collection::ModelCollection,
     node_model_id: model::ModelId,
     depth_texture: texture::Texture,
-    instance_collections: Vec<instance_collection::InstanceCollection>,
-    node_collection: node_collection::NodeCollection,
-    node_to_instance_lookup: HashMap<node::NodeId, instance::Instance>,
 }
 
 impl super::Scene for State {
@@ -250,11 +247,6 @@ impl super::Scene for State {
         };
         let cube_id = models.add(load_model);
         let node_model_id = cube_id;
-        let cube_instance_collection = instance_collection::InstanceCollection::new(cube_id);
-
-        let instance_collections = vec![cube_instance_collection];
-        let node_collection = node_collection::NodeCollection::new();
-        let node_to_instance_lookup: HashMap<node::NodeId, instance::Instance> = HashMap::new();
 
         Self {
             window,
@@ -274,9 +266,6 @@ impl super::Scene for State {
             camera_bind_group,
             models,
             depth_texture,
-            instance_collections,
-            node_collection,
-            node_to_instance_lookup,
             node_model_id,
         }
     }
@@ -320,47 +309,6 @@ impl super::Scene for State {
             0,
             bytemuck::cast_slice(&[self.camera_uniform]),
         );
-    }
-
-    fn add_node_to_scene(&mut self, node: node::Node) {
-        // TODO Need to determine _what_ collection here
-        let instance_collection: &mut InstanceCollection = &mut self.instance_collections[0];
-        let node_collection = &mut self.node_collection;
-        if node_collection.iter().any(|n| n.id == node.id) {
-            println!(
-                "Node with ID {} has already been added to the scene",
-                node.id
-            );
-            return;
-        }
-
-        let new_instance = instance::Instance {
-            position: cgmath::Vector3::new(
-                node.position.x as f32,
-                0 as f32,
-                node.position.y as f32,
-            ),
-            rotation: cgmath::Quaternion::zero(),
-        };
-
-        self.node_to_instance_lookup.insert(node.id, new_instance);
-        node_collection.add(node);
-        instance_collection.add(new_instance);
-    }
-
-    fn remove_node_from_scene(&mut self, id: node::NodeId) {
-        let instance_collection: &mut InstanceCollection = &mut self.instance_collections[0];
-        let node_collection = &mut self.node_collection;
-
-        if !node_collection.iter().any(|n| n.id == id) {
-            println!("No node with ID {} has been added to the scene", id);
-            return;
-        }
-
-        node_collection.remove(id);
-        let instance = self.node_to_instance_lookup.get(&id);
-        instance_collection.remove(*instance.unwrap());
-        self.node_to_instance_lookup.remove(&id);
     }
 
     fn render(

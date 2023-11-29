@@ -16,8 +16,6 @@ impl Scene for ShimState {
         false
     }
     fn update(&mut self) {}
-    fn add_node_to_scene(&mut self, node: node::Node) {}
-    fn remove_node_from_scene(&mut self, id: node::NodeId) {}
     fn render(
         &mut self,
         clear_colour: wgpu::Color,
