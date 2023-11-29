@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use crate::{node, simulation};
+use crate::simulation;
 
 pub mod shim_state;
 pub mod state;
