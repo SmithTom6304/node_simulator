@@ -5,6 +5,7 @@ pub struct NodeEvent {
     pub add_node_event: Option<AddNodeEvent>,
     pub remove_node_event: Option<RemoveNodeEvent>,
     pub close_node_event: Option<CloseEvent>,
+    pub toggle_scene_event: Option<ToggleSceneEvent>,
 }
 
 pub struct AddNodeEvent {
@@ -39,6 +40,16 @@ impl CloseEvent {
     pub fn new() -> NodeEvent {
         NodeEvent {
             close_node_event: Some(CloseEvent {}),
+            ..Default::default()
+        }
+    }
+}
+
+pub struct ToggleSceneEvent {}
+impl ToggleSceneEvent {
+    pub fn new() -> NodeEvent {
+        NodeEvent {
+            toggle_scene_event: Some(ToggleSceneEvent {}),
             ..Default::default()
         }
     }

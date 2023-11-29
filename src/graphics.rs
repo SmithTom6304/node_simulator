@@ -1,4 +1,5 @@
 use crate::simulation;
+use std::any::Any;
 
 use self::scene_implementations::Scene;
 
@@ -88,6 +89,19 @@ impl<'a> GraphicsInterface<'a> {
         }
     }
 
+    pub fn toggle_state(&mut self) {
+        self.scene = match self.scene.as_any().downcast_ref::<state::State>() {
+            Some(state) => Box::new(scene_implementations::shim_state::ShimState::new(
+                &self.context,
+                None,
+            )),
+            None => Box::new(scene_implementations::state::State::new(
+                &self.context,
+                None,
+            )),
+        };
+    }
+
     fn handle_event(&mut self, event: sdl2::event::Event) -> EventStatus {
         if self.scene.input(&event) {
             return EventStatus::Handled;
@@ -127,6 +141,13 @@ impl<'a> GraphicsInterface<'a> {
         match event.close_node_event {
             Some(_) => {
                 return EventStatus::Close;
+            }
+            None => (),
+        };
+        match event.toggle_scene_event {
+            Some(_) => {
+                self.toggle_state();
+                return EventStatus::Handled;
             }
             None => (),
         };

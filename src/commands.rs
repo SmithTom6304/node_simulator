@@ -8,6 +8,7 @@ impl CommandGenerator {
             .subcommand(Self::add_command())
             .subcommand(Self::remove_command())
             .subcommand(Self::close_command())
+            .subcommand(Self::toggle_scene_command())
             .disable_help_subcommand(true)
             .help_template("Commands:\n{subcommands}")
     }
@@ -43,5 +44,9 @@ impl CommandGenerator {
 
     pub fn close_command() -> clap::Command {
         Command::new("CLOSE").about("Close the program")
+    }
+
+    pub fn toggle_scene_command() -> clap::Command {
+        Command::new("TOGGLE_SCENE").about("Toggle the program scene")
     }
 }
