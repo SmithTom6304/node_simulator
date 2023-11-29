@@ -1,19 +1,13 @@
-use std::collections::HashMap;
-
-use bytemuck;
-use sdl2::keyboard::Keycode;
-use wgpu::util::DeviceExt;
-
-use crate::node;
-
 use crate::graphics;
 use crate::simulation;
+use bytemuck;
 use graphics::camera;
-use graphics::instances::instance_collection::InstanceCollection;
 use graphics::instances::{instance, instance_collection};
 use graphics::models::{material, model, model_collection};
 use graphics::texture;
 use graphics::vertex::Vertex;
+use sdl2::keyboard::Keycode;
+use wgpu::util::DeviceExt;
 
 use cgmath::prelude::*;
 
