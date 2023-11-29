@@ -5,7 +5,6 @@ use sdl2::keyboard::Keycode;
 use wgpu::util::DeviceExt;
 
 use crate::node;
-use crate::node_collection;
 
 use crate::graphics;
 use crate::simulation;
