@@ -25,7 +25,7 @@ features = ["png", "jpeg"]
 
 [dependencies.sdl2]
 version = "0.36"
-features = ["raw-window-handle"]
+features = ["raw-window-handle", "bundled"]
 
 [build-dependencies]
 anyhow = "1.0"
