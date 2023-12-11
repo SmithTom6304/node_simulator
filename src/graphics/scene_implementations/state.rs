@@ -12,7 +12,7 @@ use wgpu::util::DeviceExt;
 use cgmath::prelude::*;
 
 pub struct State {
-    window: sdl2::video::Window,
+    _window: sdl2::video::Window,
     surface: wgpu::Surface,
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -242,7 +242,7 @@ impl super::Scene for State {
         let node_model_id = cube_id;
 
         Self {
-            window,
+            _window: window,
             surface,
             device,
             queue,
