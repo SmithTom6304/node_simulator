@@ -1,30 +1,24 @@
-use std::collections::HashMap;
-
+use crate::graphics;
+use crate::simulation;
 use bytemuck;
+use graphics::camera;
+use graphics::instances::{instance, instance_collection};
+use graphics::models::{material, model, model_collection};
+use graphics::texture;
+use graphics::vertex::Vertex;
+use sdl2::keyboard::Keycode;
 use wgpu::util::DeviceExt;
-use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
-use winit::{event::WindowEvent, window::Window};
-
-use crate::node;
-use crate::node_collection;
-
-use super::camera;
-use super::instances::instance_collection::InstanceCollection;
-use super::instances::{instance, instance_collection};
-use super::models::{material, model, model_collection};
-use super::texture;
-use super::vertex::Vertex;
 
 use cgmath::prelude::*;
 
 pub struct State {
-    pub surface: wgpu::Surface,
-    pub device: wgpu::Device,
-    pub queue: wgpu::Queue,
-    pub config: wgpu::SurfaceConfiguration,
-    pub size: winit::dpi::PhysicalSize<u32>,
-    pub window: Window,
-    pub render_pipeline: wgpu::RenderPipeline,
+    _window: sdl2::video::Window,
+    surface: wgpu::Surface,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
+    size: (u32, u32),
+    render_pipeline: wgpu::RenderPipeline,
     fallback_material: material::Material,
     default_material: Option<material::Material>,
     use_default_material: bool,
@@ -34,17 +28,12 @@ pub struct State {
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
     models: model_collection::ModelCollection,
+    node_model_id: model::ModelId,
     depth_texture: texture::Texture,
-    instance_collections: Vec<instance_collection::InstanceCollection>,
-    node_collection: node_collection::NodeCollection,
-    node_to_instance_lookup: HashMap<node::NodeId, instance::Instance>,
 }
 
-impl State {
-    // Creating some of the wgpu types requires async code
-    pub async fn new(window: Window, default_texture_path: Option<String>) -> Self {
-        let size = window.inner_size();
-
+impl super::Scene for State {
+    fn new(context: &sdl2::Sdl, default_texture_path: Option<String>) -> Self {
         // The instance is a handle to our GPU
         // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -52,36 +41,41 @@ impl State {
             dx12_shader_compiler: Default::default(),
         });
 
+        let video_subsystem = context.video().unwrap();
+        let window = video_subsystem
+            .window("rust-sdl2 demo", 800, 600)
+            .position_centered()
+            .metal_view()
+            .resizable()
+            .build()
+            .unwrap();
         // # Safety
         //
         // The surface needs to live as long as the window that created it.
         // State owns the window so this should be safe.
         let surface = unsafe { instance.create_surface(&window) }.unwrap();
-
         // Adapter - translation layer between OS native graphics API and wgpu
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
-                force_fallback_adapter: false,
-                compatible_surface: Some(&surface),
-            })
-            .await
-            .unwrap();
+        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::default(),
+            force_fallback_adapter: false,
+            compatible_surface: Some(&surface),
+        }))
+        .unwrap();
+
+        let size = window.size();
 
         // device - Logical device requested from adapter, to look
         // like we are the only thing using the GPU
         // (Since multiple apps can use the adapter?)
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    features: wgpu::Features::empty(),
-                    limits: wgpu::Limits::downlevel_defaults(),
-                    label: None,
-                },
-                None,
-            )
-            .await
-            .unwrap();
+        let (device, queue) = pollster::block_on(adapter.request_device(
+            &wgpu::DeviceDescriptor {
+                features: wgpu::Features::empty(),
+                limits: wgpu::Limits::downlevel_defaults(),
+                label: None,
+            },
+            None,
+        ))
+        .unwrap();
 
         let surface_caps = surface.get_capabilities(&adapter);
 
@@ -95,8 +89,8 @@ impl State {
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
-            width: size.width,
-            height: size.height,
+            width: size.0,
+            height: size.1,
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
@@ -105,13 +99,12 @@ impl State {
 
         let default_material: Option<material::Material> = match default_texture_path {
             Some(path) => {
-                let material = material::Material::load(
+                let material = pollster::block_on(material::Material::load(
                     "default_material".to_string(),
                     &path,
                     &device,
                     &queue,
-                )
-                .await;
+                ));
                 match material {
                     Ok(mat) => Some(mat),
                     Err(error) => {
@@ -126,13 +119,12 @@ impl State {
             None => None,
         };
 
-        let fallback_material = material::Material::load(
+        let fallback_material = pollster::block_on(material::Material::load(
             "fallback_material".to_string(),
             "fallback-texture.jpg",
             &device,
             &queue,
-        )
-        .await
+        ))
         .expect("Could not load fallback texture");
 
         let camera = camera::Camera {
@@ -182,7 +174,7 @@ impl State {
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shader.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../../shader.wgsl").into()),
         });
 
         let depth_texture =
@@ -247,14 +239,10 @@ impl State {
             return model;
         };
         let cube_id = models.add(load_model);
-        let cube_instance_collection = instance_collection::InstanceCollection::new(cube_id);
-
-        let instance_collections = vec![cube_instance_collection];
-        let node_collection = node_collection::NodeCollection::new();
-        let node_to_instance_lookup: HashMap<node::NodeId, instance::Instance> = HashMap::new();
+        let node_model_id = cube_id;
 
         Self {
-            window,
+            _window: window,
             surface,
             device,
             queue,
@@ -271,46 +259,42 @@ impl State {
             camera_bind_group,
             models,
             depth_texture,
-            instance_collections,
-            node_collection,
-            node_to_instance_lookup,
+            node_model_id,
         }
     }
 
-    pub fn window(&self) -> &Window {
-        &self.window
-    }
-
-    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
-        if new_size.width > 0 && new_size.height > 0 {
+    fn resize(&mut self, new_size: (u32, u32)) {
+        if new_size.0 > 0 && new_size.1 > 0 {
             self.size = new_size;
-            self.config.width = new_size.width;
-            self.config.height = new_size.height;
+            self.config.width = new_size.0;
+            self.config.height = new_size.1;
             self.surface.configure(&self.device, &self.config);
             self.depth_texture =
                 texture::Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
         }
     }
 
-    pub fn input(&mut self, event: &WindowEvent) -> bool {
-        self.camera_controller.process_events(event);
-        match event {
-            WindowEvent::CursorMoved { .. } => {}
-            WindowEvent::KeyboardInput {
-                input:
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::D),
-                        ..
-                    },
-                ..
-            } => self.use_default_material = !self.use_default_material,
-            _ => (),
+    fn input(&mut self, event: &sdl2::event::Event) -> bool {
+        if self.camera_controller.process_events(event) {
+            return true;
         }
+        match event {
+            sdl2::event::Event::KeyDown {
+                keycode: Some(keycode),
+                ..
+            } => match keycode {
+                Keycode::D => {
+                    self.use_default_material = !self.use_default_material;
+                    true
+                }
+                _ => false,
+            },
+            _ => false,
+        };
         false
     }
 
-    pub fn update(&mut self) {
+    fn update(&mut self) {
         self.camera_controller.update_camera(&mut self.camera);
         self.camera_uniform.update_view_proj(&self.camera);
         self.queue.write_buffer(
@@ -320,48 +304,11 @@ impl State {
         );
     }
 
-    pub fn add_node_to_scene(&mut self, node: node::Node) {
-        // TODO Need to determine _what_ collection here
-        let instance_collection: &mut InstanceCollection = &mut self.instance_collections[0];
-        let node_collection = &mut self.node_collection;
-        if node_collection.iter().any(|n| n.id == node.id) {
-            println!(
-                "Node with ID {} has already been added to the scene",
-                node.id
-            );
-            return;
-        }
-
-        let new_instance = instance::Instance {
-            position: cgmath::Vector3::new(
-                node.position.x as f32,
-                0 as f32,
-                node.position.y as f32,
-            ),
-            rotation: cgmath::Quaternion::zero(),
-        };
-
-        self.node_to_instance_lookup.insert(node.id, new_instance);
-        node_collection.add(node);
-        instance_collection.add(new_instance);
-    }
-
-    pub fn remove_node_from_scene(&mut self, id: node::NodeId) {
-        let instance_collection: &mut InstanceCollection = &mut self.instance_collections[0];
-        let node_collection = &mut self.node_collection;
-
-        if !node_collection.iter().any(|n| n.id == id) {
-            println!("No node with ID {} has been added to the scene", id);
-            return;
-        }
-
-        node_collection.remove(id);
-        let instance = self.node_to_instance_lookup.get(&id);
-        instance_collection.remove(*instance.unwrap());
-        self.node_to_instance_lookup.remove(&id);
-    }
-
-    pub fn render(&mut self, clear_colour: wgpu::Color) -> Result<(), wgpu::SurfaceError> {
+    fn render(
+        &mut self,
+        clear_colour: wgpu::Color,
+        simulation: &simulation::Simulation,
+    ) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -373,9 +320,23 @@ impl State {
                 label: Some("Render Encoder"),
             });
 
-        let instance_data = instance_collection::InstanceCollection::get_instance_render_data(
-            &self.instance_collections,
-        );
+        let mut node_instance_collection =
+            instance_collection::InstanceCollection::new(self.node_model_id);
+        for node in simulation.nodes.iter() {
+            node_instance_collection.add(instance::Instance {
+                position: cgmath::Vector3 {
+                    x: node.position.x as f32,
+                    y: node.position.y as f32,
+                    z: 0.0,
+                },
+                rotation: cgmath::Quaternion::zero(),
+            })
+        }
+
+        let instance_data =
+            instance_collection::InstanceCollection::get_instance_render_data(&vec![
+                node_instance_collection,
+            ]);
         let instance_buffer = self
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -411,41 +372,37 @@ impl State {
             render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
 
             use model::DrawModel;
-            for collection in self.instance_collections.iter() {
-                let id = collection.model;
-                let model = self.models.find(id);
-                let model = model.unwrap();
-                let range = &instance_data
-                    .indexes
-                    .iter()
-                    .find(|value| value.0 == id)
-                    .unwrap()
-                    .1;
-                let mesh = &model.meshes[0];
+            let model = self.models.find(self.node_model_id);
+            let model = model.unwrap();
+            let range = &instance_data
+                .indexes
+                .iter()
+                .find(|value| value.0 == self.node_model_id)
+                .unwrap()
+                .1;
+            let mesh = &model.meshes[0];
 
-                let material =
-                    if self.use_default_material == false && model.materials.is_empty() == false {
-                        &model.materials[0]
-                    } else {
-                        &self
-                            .default_material
-                            .as_ref()
-                            .unwrap_or(&self.fallback_material)
-                    };
+            let material =
+                if self.use_default_material == false && model.materials.is_empty() == false {
+                    &model.materials[0]
+                } else {
+                    &self
+                        .default_material
+                        .as_ref()
+                        .unwrap_or(&self.fallback_material)
+                };
 
-                render_pass.draw_mesh_instanced(
-                    mesh,
-                    material,
-                    range.clone(),
-                    &self.camera_bind_group,
-                );
-            }
+            render_pass.draw_mesh_instanced(mesh, material, range.clone(), &self.camera_bind_group);
         }
 
         // submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));
-        output.present();
 
+        output.present();
         Ok(())
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }

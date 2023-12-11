@@ -1,37 +1,40 @@
 use std::io;
+use std::sync::mpsc;
 use std::thread;
 
 use clap::ArgMatches;
 use graphics::node_events;
-use graphics::state;
-use winit::event_loop;
 
 mod graphics;
 mod node;
-mod node_collection;
 mod resources;
 
 mod commands;
+mod simulation;
 
-pub fn run(default_texture_path: Option<String>) {
-    graphics::init();
-    let event_loop = graphics::get_event_loop();
-    let event_loop_proxy = event_loop.create_proxy();
-    let window = graphics::create_window(&event_loop);
-    let state = pollster::block_on(state::State::new(window, default_texture_path));
+pub fn run(_default_texture_path: Option<String>, create_display: bool) {
+    let mut simulation = simulation::Simulation::new();
+    let graphics_interface = graphics::GraphicsInterface::new(&mut simulation, create_display);
 
+    let event = &graphics_interface.event;
+    event
+        .register_custom_event::<node_events::NodeEvent>()
+        .unwrap();
+
+    let (tx, rx) = mpsc::channel::<node_events::NodeEvent>();
     thread::spawn(|| {
         println!("Running node_simulator...");
-        read_input(event_loop_proxy);
+        read_input(tx);
     });
-    pollster::block_on(graphics::run(event_loop, state));
+    graphics_interface.run(rx);
 }
 
-fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEvent>) {
+fn read_input(tx: mpsc::Sender<node_events::NodeEvent>) {
     let mut help_command = commands::CommandGenerator::help_command();
     let add_command = commands::CommandGenerator::add_command();
     let remove_command = commands::CommandGenerator::remove_command();
     let close_command = commands::CommandGenerator::close_command();
+    let toggle_scene_command = commands::CommandGenerator::toggle_scene_command();
     loop {
         let mut input = String::new();
         io::stdin()
@@ -47,19 +50,36 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEven
             Some(command_name) if *command_name == add_command.get_name() => {
                 let args = add_command.clone().try_get_matches_from(input);
                 match args {
-                    Ok(result) => try_execute_add_command(result, &event_loop_proxy),
+                    Ok(result) => {
+                        _ = tx.send(node_events::NodeEvent {
+                            add_node_event: try_execute_add_command(result),
+                            ..Default::default()
+                        })
+                    }
                     Err(err) => println!("{}", err),
                 }
             }
             Some(command_name) if *command_name == remove_command.get_name() => {
                 let args = remove_command.clone().try_get_matches_from(input);
                 match args {
-                    Ok(result) => try_execute_remove_command(result, &event_loop_proxy),
+                    Ok(result) => {
+                        _ = tx.send(node_events::NodeEvent {
+                            remove_node_event: try_execute_remove_command(result),
+                            ..Default::default()
+                        })
+                    }
                     Err(err) => println!("{}", err),
                 }
             }
             Some(command_name) if *command_name == close_command.get_name() => {
-                let result = event_loop_proxy.send_event(node_events::NodeEvent::Close);
+                let result = tx.send(node_events::CloseEvent::new());
+                let _ = match result {
+                    Ok(_) => (),
+                    Err(err) => println!("{}", err),
+                };
+            }
+            Some(command_name) if *command_name == toggle_scene_command.get_name() => {
+                let result = tx.send(node_events::ToggleSceneEvent::new());
                 let _ = match result {
                     Ok(_) => (),
                     Err(err) => println!("{}", err),
@@ -74,15 +94,12 @@ fn read_input(event_loop_proxy: event_loop::EventLoopProxy<node_events::NodeEven
     }
 }
 
-fn try_execute_add_command(
-    args: ArgMatches,
-    event_loop_proxy: &event_loop::EventLoopProxy<node_events::NodeEvent>,
-) {
+fn try_execute_add_command(args: ArgMatches) -> Option<node_events::AddNodeEvent> {
     let id = args.get_one::<String>("id").expect("ID arg was missing");
     let id = id.parse::<u32>();
     if id.is_err() {
         println!("ID must be a u32");
-        return;
+        return None;
     }
     let id = node::NodeId(id.unwrap());
 
@@ -94,20 +111,20 @@ fn try_execute_add_command(
                 pos_string.map(|s| s.parse::<i32>()).collect();
             if positions.len() != 2 {
                 println!("Position must have 2 values");
-                return;
+                return None;
             }
             let x = match &positions[0] {
                 Ok(number) => *number,
                 Err(_) => {
                     println!("Position x must be an i32");
-                    return;
+                    return None;
                 }
             };
             let y = match &positions[1] {
                 Ok(number) => *number,
                 Err(_) => {
                     println!("Position y must be an i32");
-                    return;
+                    return None;
                 }
             };
             node::NodePosition { x, y }
@@ -116,27 +133,16 @@ fn try_execute_add_command(
     };
 
     let node = node::Node::new(id, position);
-    let result = event_loop_proxy.send_event(node_events::NodeEvent::Add(node));
-    let _ = match result {
-        Ok(_) => (),
-        Err(err) => println!("{}", err),
-    };
+    Some(node_events::AddNodeEvent { node })
 }
 
-fn try_execute_remove_command(
-    args: ArgMatches,
-    event_loop_proxy: &event_loop::EventLoopProxy<node_events::NodeEvent>,
-) {
+fn try_execute_remove_command(args: ArgMatches) -> Option<node_events::RemoveNodeEvent> {
     let id = args.get_one::<String>("id").expect("ID arg was missing");
     let id = id.parse::<u32>();
     if id.is_err() {
         println!("ID must be a u32");
-        return;
+        return None;
     }
     let id = node::NodeId(id.unwrap());
-    let result = event_loop_proxy.send_event(node_events::NodeEvent::Remove(id));
-    let _ = match result {
-        Ok(_) => (),
-        Err(err) => println!("{}", err),
-    };
+    Some(node_events::RemoveNodeEvent { node_id: id })
 }

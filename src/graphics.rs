@@ -1,92 +1,164 @@
+use self::scene_implementations::Scene;
+use crate::simulation;
+
 use super::node;
-use winit::{event, event_loop, window};
+use sdl2;
+
+use scene_implementations::state;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use std::sync::mpsc;
+use std::time::Duration;
 
 mod camera;
 mod instances;
 mod models;
 pub mod node_events;
-pub mod state;
+mod scene_implementations;
 mod texture;
 mod vertex;
 
-pub fn init() {
-    env_logger::init();
+pub struct GraphicsInterface<'a> {
+    pub simulation: &'a mut simulation::Simulation,
+    pub context: sdl2::Sdl,
+    pub event: sdl2::EventSubsystem,
+    pub scene: Box<dyn scene_implementations::Scene>,
 }
 
-pub fn get_event_loop() -> event_loop::EventLoop<node_events::NodeEvent> {
-    let mut event_loop_builder =
-        event_loop::EventLoopBuilder::<node_events::NodeEvent>::with_user_event();
-    event_loop_builder.build()
+enum EventStatus {
+    Handled,
+    Close,
 }
 
-pub fn create_window(event_loop: &event_loop::EventLoop<node_events::NodeEvent>) -> window::Window {
-    window::WindowBuilder::new().build(&event_loop).unwrap()
-}
+impl<'a> GraphicsInterface<'a> {
+    pub fn new(
+        simulation: &'a mut simulation::Simulation,
+        create_display: bool,
+    ) -> GraphicsInterface<'a> {
+        let context = sdl2::init().unwrap();
+        let event = context.event().unwrap();
+        let scene: Box<dyn scene_implementations::Scene> = match create_display {
+            true => Box::new(state::State::new(&context, None)),
+            false => Box::new(scene_implementations::shim_state::ShimState::new(
+                &context, None,
+            )),
+        };
 
-pub async fn run(
-    event_loop: event_loop::EventLoop<node_events::NodeEvent>,
-    mut state: state::State,
-) {
-    event_loop.run(move |event, _, control_flow| match event {
-        event::Event::WindowEvent {
-            ref event,
-            window_id,
-        } if window_id == state.window.id() => {
-            if !state.input(event) {
-                match event {
-                    event::WindowEvent::CloseRequested
-                    | event::WindowEvent::KeyboardInput {
-                        input:
-                            event::KeyboardInput {
-                                state: event::ElementState::Pressed,
-                                virtual_keycode: Some(event::VirtualKeyCode::Escape),
-                                ..
-                            },
-                        ..
-                    } => *control_flow = event_loop::ControlFlow::Exit,
+        GraphicsInterface {
+            simulation,
+            context,
+            event,
+            scene,
+        }
+    }
 
-                    event::WindowEvent::Resized(physical_size) => {
-                        state.resize(*physical_size);
-                    }
-                    event::WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                        state.resize(**new_inner_size);
-                    }
-                    _ => {}
+    pub fn run(mut self, rx: mpsc::Receiver<node_events::NodeEvent>) {
+        let mut event_pump = self.context.event_pump().unwrap();
+        let mut i = 0;
+        'running: loop {
+            i = (i + 1) % 255;
+
+            let ev = rx.try_recv();
+            match ev {
+                Ok(e) => _ = self.event.push_custom_event(e),
+                Err(_) => (),
+            }
+
+            for event in event_pump.poll_iter() {
+                let status = match event.is_user_event() {
+                    true => self.handle_custom_event(
+                        event
+                            .as_user_event_type::<node_events::NodeEvent>()
+                            .expect("User event was not node event"),
+                    ),
+                    false => self.handle_event(event),
+                };
+                match status {
+                    EventStatus::Close => break 'running,
+                    EventStatus::Handled => (),
                 }
             }
+            // The rest of the game loop goes here...
+
+            let result = self.scene.render(
+                wgpu::Color {
+                    r: 0.65,
+                    g: 0.68,
+                    b: 0.97,
+                    a: 1.0,
+                },
+                self.simulation,
+            );
+            if result.is_err() {
+                println!("Render error - {}", result.err().unwrap());
+            }
+            self.scene.update();
+            ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
         }
-        event::Event::RedrawRequested(window_id) if window_id == state.window().id() => {
-            state.update();
-            let clear_colour = wgpu::Color {
-                r: 0.1,
-                g: 0.2,
-                b: 0.3,
-                a: 1.0,
-            };
-            match state.render(clear_colour) {
-                Ok(_) => {}
-                // Reconfigure the surface if lost
-                Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
-                // The system is out of memory, we should probably quit
-                Err(wgpu::SurfaceError::OutOfMemory) => {
-                    *control_flow = event_loop::ControlFlow::Exit
+    }
+
+    pub fn toggle_state(&mut self) {
+        self.scene = match self.scene.as_any().downcast_ref::<state::State>() {
+            Some(_) => Box::new(scene_implementations::shim_state::ShimState::new(
+                &self.context,
+                None,
+            )),
+            None => Box::new(scene_implementations::state::State::new(
+                &self.context,
+                None,
+            )),
+        };
+    }
+
+    fn handle_event(&mut self, event: sdl2::event::Event) -> EventStatus {
+        if self.scene.input(&event) {
+            return EventStatus::Handled;
+        }
+        match event {
+            Event::Quit { .. }
+            | Event::KeyDown {
+                keycode: Some(Keycode::Escape),
+                ..
+            } => EventStatus::Close,
+            Event::Window { win_event, .. } => match win_event {
+                sdl2::event::WindowEvent::Resized(w, h) => {
+                    self.scene.resize((w as u32, h as u32));
+                    EventStatus::Handled
                 }
-                // All other errors (Outdated, Timeout) should be resolved by the next frame
-                Err(e) => eprintln!("{:?}", e),
-            }
+                _ => EventStatus::Handled,
+            },
+            _ => EventStatus::Handled,
         }
-        event::Event::UserEvent(event) => match event {
-            node_events::NodeEvent::Close => {
-                *control_flow = event_loop::ControlFlow::Exit;
+    }
+
+    fn handle_custom_event(&mut self, event: node_events::NodeEvent) -> EventStatus {
+        match event.add_node_event {
+            Some(add) => {
+                self.simulation.add_node(add.node);
+                return EventStatus::Handled;
             }
-            node_events::NodeEvent::Add(node) => state.add_node_to_scene(node),
-            node_events::NodeEvent::Remove(id) => state.remove_node_from_scene(id),
-        },
-        event::Event::MainEventsCleared => {
-            // RedrawRequested will only trigger once, unless we manually
-            // request it.
-            state.window().request_redraw();
-        }
-        _ => {}
-    });
+            None => (),
+        };
+        match event.remove_node_event {
+            Some(remove) => {
+                self.simulation.remove_node(remove.node_id);
+                return EventStatus::Handled;
+            }
+            None => (),
+        };
+        match event.close_node_event {
+            Some(_) => {
+                return EventStatus::Close;
+            }
+            None => (),
+        };
+        match event.toggle_scene_event {
+            Some(_) => {
+                self.toggle_state();
+                return EventStatus::Handled;
+            }
+            None => (),
+        };
+        EventStatus::Handled
+    }
 }
