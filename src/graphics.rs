@@ -31,11 +31,18 @@ enum EventStatus {
 }
 
 impl<'a> GraphicsInterface<'a> {
-    pub fn new(simulation: &'a mut simulation::Simulation) -> GraphicsInterface<'a> {
+    pub fn new(
+        simulation: &'a mut simulation::Simulation,
+        create_display: bool,
+    ) -> GraphicsInterface<'a> {
         let context = sdl2::init().unwrap();
         let event = context.event().unwrap();
-        let scene: Box<dyn scene_implementations::Scene> =
-            Box::new(state::State::new(&context, None));
+        let scene: Box<dyn scene_implementations::Scene> = match create_display {
+            true => Box::new(state::State::new(&context, None)),
+            false => Box::new(scene_implementations::shim_state::ShimState::new(
+                &context, None,
+            )),
+        };
 
         GraphicsInterface {
             simulation,
