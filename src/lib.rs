@@ -12,9 +12,9 @@ mod resources;
 mod commands;
 mod simulation;
 
-pub fn run(_default_texture_path: Option<String>) {
+pub fn run(_default_texture_path: Option<String>, create_display: bool) {
     let mut simulation = simulation::Simulation::new();
-    let graphics_interface = graphics::GraphicsInterface::new(&mut simulation);
+    let graphics_interface = graphics::GraphicsInterface::new(&mut simulation, create_display);
 
     let event = &graphics_interface.event;
     event
