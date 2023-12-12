@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      - name: Install CMake
+        uses: symbitic/install-cmake@master
 
       - name: Generate code coverage
         run: |
