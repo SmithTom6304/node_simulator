@@ -3,6 +3,7 @@ use std::any::Any;
 use crate::simulation;
 
 pub mod shim_state;
+#[cfg(feature = "wgpu")]
 pub mod state;
 
 pub trait Scene {

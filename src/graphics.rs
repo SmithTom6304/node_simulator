@@ -4,7 +4,6 @@ use crate::simulation;
 use super::node;
 use sdl2;
 
-use scene_implementations::state;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::sync::mpsc;
@@ -37,12 +36,7 @@ impl<'a> GraphicsInterface<'a> {
     ) -> GraphicsInterface<'a> {
         let context = sdl2::init().unwrap();
         let event = context.event().unwrap();
-        let scene: Box<dyn scene_implementations::Scene> = match create_display {
-            true => Box::new(state::State::new(&context, None)),
-            false => Box::new(scene_implementations::shim_state::ShimState::new(
-                &context, None,
-            )),
-        };
+        let scene = Self::init_scene(&context, create_display);
 
         GraphicsInterface {
             simulation,
@@ -50,6 +44,29 @@ impl<'a> GraphicsInterface<'a> {
             event,
             scene,
         }
+    }
+
+    #[cfg(feature = "wgpu")]
+    fn init_scene(
+        context: &sdl2::Sdl,
+        create_display: bool,
+    ) -> Box<dyn scene_implementations::Scene> {
+        match create_display {
+            true => Box::new(scene_implementations::state::State::new(context, None)),
+            false => Box::new(scene_implementations::shim_state::ShimState::new(
+                context, None,
+            )),
+        }
+    }
+
+    #[cfg(not(feature = "wgpu"))]
+    fn init_scene(
+        context: &sdl2::Sdl,
+        create_display: bool,
+    ) -> Box<dyn scene_implementations::Scene> {
+        Box::new(scene_implementations::shim_state::ShimState::new(
+            context, None,
+        ))
     }
 
     pub fn run(mut self, rx: mpsc::Receiver<node_events::NodeEvent>) {
@@ -97,8 +114,13 @@ impl<'a> GraphicsInterface<'a> {
         }
     }
 
+    #[cfg(feature = "wgpu")]
     pub fn toggle_state(&mut self) {
-        self.scene = match self.scene.as_any().downcast_ref::<state::State>() {
+        self.scene = match self
+            .scene
+            .as_any()
+            .downcast_ref::<scene_implementations::state::State>()
+        {
             Some(_) => Box::new(scene_implementations::shim_state::ShimState::new(
                 &self.context,
                 None,
@@ -108,6 +130,11 @@ impl<'a> GraphicsInterface<'a> {
                 None,
             )),
         };
+    }
+
+    #[cfg(not(feature = "wgpu"))]
+    pub fn toggle_state(&mut self) {
+        println!("Feature 'wgpu' is required to display scene.");
     }
 
     fn handle_event(&mut self, event: sdl2::event::Event) -> EventStatus {
