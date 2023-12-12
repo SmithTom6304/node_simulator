@@ -1,0 +1,4 @@
+# wgpu is a default feature - make sure you run with --no-default-features
+
+[no_wgpu_coverage]
+features = ""
