@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Node {
     pub id: NodeId,
     pub position: NodePosition,
@@ -14,6 +15,7 @@ impl fmt::Display for NodeId {
     }
 }
 
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct NodePosition {
     pub x: i32,
     pub y: i32,
