@@ -9,12 +9,17 @@ use sdl2::keyboard::Keycode;
 use std::sync::mpsc;
 use std::time::Duration;
 
+#[cfg(feature = "wgpu")]
 mod camera;
+#[cfg(feature = "wgpu")]
 mod instances;
+#[cfg(feature = "wgpu")]
 mod models;
 pub mod node_events;
 mod scene_implementations;
+#[cfg(feature = "wgpu")]
 mod texture;
+#[cfg(feature = "wgpu")]
 mod vertex;
 
 pub struct GraphicsInterface<'a> {
