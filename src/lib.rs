@@ -16,11 +16,6 @@ pub fn run(_default_texture_path: Option<String>, create_display: bool) {
     let mut simulation = simulation::Simulation::new();
     let graphics_interface = graphics::GraphicsInterface::new(&mut simulation, create_display);
 
-    let event = &graphics_interface.event;
-    event
-        .register_custom_event::<node_events::NodeEvent>()
-        .unwrap();
-
     let (tx, rx) = mpsc::channel::<node_events::NodeEvent>();
     thread::spawn(|| {
         println!("Running node_simulator...");
