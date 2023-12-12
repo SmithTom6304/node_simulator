@@ -197,3 +197,30 @@ impl<'a> GraphicsInterface<'a> {
         EventStatus::Handled
     }
 }
+
+#[cfg(test)]
+mod a_graphics_interface {
+    use std::thread;
+
+    use super::{node_events::CloseEvent, *};
+    use crate::simulation::Simulation;
+
+    #[test]
+    fn runs_until_a_close_event_is_received() {
+        let mut simulation = Simulation::new();
+        let graphics_interface = GraphicsInterface::new(&mut simulation, false);
+        let (tx, rx) = mpsc::channel::<node_events::NodeEvent>();
+        thread::spawn(|| {
+            thread::sleep(Duration::new(1, 0));
+            send_close_event(tx);
+        });
+        graphics_interface.run(rx);
+    }
+
+    fn send_close_event(tx: mpsc::Sender<node_events::NodeEvent>) {
+        _ = tx.send(node_events::NodeEvent {
+            close_node_event: Some(CloseEvent {}),
+            ..Default::default()
+        });
+    }
+}
