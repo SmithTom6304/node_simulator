@@ -22,4 +22,4 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Run Tests
-      run: cargo test --verbose --no-default-features # Disable default wgpu feature flag
+      run: cargo test --verbose --no-default-features -- --test-threads 1
