@@ -15,7 +15,7 @@ impl fmt::Display for NodeId {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
 pub struct NodePosition {
     pub x: i32,
     pub y: i32,
