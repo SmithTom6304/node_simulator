@@ -2,11 +2,9 @@
 
 Runs node-based simulations with graphical interface.
 
-## Code status
+## Status
 ![Build](https://github.com/SmithTom6304/node_simulator/actions/workflows/build.yml/badge.svg)
-
 ![Tests](https://github.com/SmithTom6304/node_simulator/actions/workflows/test.yml/badge.svg)
-
 [![Coverage](https://codecov.io/gh/SmithTom6304/node_simulator/graph/badge.svg?token=QMWP9LUYW2)](https://codecov.io/gh/SmithTom6304/node_simulator)
 
 ## Pre-requisites
