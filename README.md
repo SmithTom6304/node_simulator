@@ -4,6 +4,7 @@ Runs node-based simulations with graphical interface.
 
 ## Code status
 ![CI](https://github.com/SmithTom6304/node_simulator/actions/workflows/CI.yml/badge.svg)
+[![Coverage](https://codecov.io/gh/SmithTom6304/node_simulator/graph/badge.svg?token=QMWP9LUYW2)](https://codecov.io/gh/SmithTom6304/node_simulator)
 
 ## Pre-requisites
 - [Cargo](https://github.com/rust-lang/cargo)
