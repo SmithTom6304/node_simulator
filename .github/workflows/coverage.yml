@@ -25,7 +25,7 @@ jobs:
 
       - name: Generate code coverage
         run: |
-          cargo +nightly tarpaulin --verbose --no-default-features --config tarpaulin_no_wgpu.toml --timeout 120 --out html --out xml --output-dir "tarpaulin_output"
+          cargo +nightly tarpaulin --verbose --no-default-features --config tarpaulin_no_wgpu.toml --timeout 120 --out html --out xml --output-dir "tarpaulin_output" -- --test-threads 1
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v3
