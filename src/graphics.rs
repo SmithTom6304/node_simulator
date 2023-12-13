@@ -211,17 +211,72 @@ mod a_graphics_interface {
         let mut simulation = Simulation::new();
         let graphics_interface = GraphicsInterface::new(&mut simulation, false);
         let (tx, rx) = mpsc::channel::<node_events::NodeEvent>();
-        thread::spawn(|| {
+        thread::spawn(move || {
             thread::sleep(Duration::new(1, 0));
-            send_close_event(tx);
+            send_close_event(&tx);
         });
         graphics_interface.run(rx);
     }
 
-    fn send_close_event(tx: mpsc::Sender<node_events::NodeEvent>) {
-        _ = tx.send(node_events::NodeEvent {
+    #[test]
+    fn can_receive_add_node_event() {
+        let mut simulation = Simulation::new();
+        let graphics_interface = GraphicsInterface::new(&mut simulation, false);
+        let (tx, rx) = mpsc::channel::<node_events::NodeEvent>();
+        thread::spawn(move || {
+            thread::sleep(Duration::new(1, 0));
+            let node = node::Node {
+                id: node::NodeId(1),
+                position: Default::default(),
+            };
+            let add_node_event = node_events::NodeEvent {
+                add_node_event: Some(node_events::AddNodeEvent { node }),
+                ..Default::default()
+            };
+            send_event(&tx, add_node_event);
+            thread::sleep(Duration::new(1, 0));
+            send_close_event(&tx);
+        });
+        graphics_interface.run(rx);
+
+        assert!(simulation.nodes.iter().any(|node| node.id.0 == 1));
+    }
+
+    #[test]
+    fn can_receive_remove_node_event() {
+        let mut simulation = Simulation::new();
+        let node_id = node::NodeId(1);
+        let node = node::Node {
+            id: node_id.clone(),
+            position: Default::default(),
+        };
+        simulation.add_node(node);
+        let graphics_interface = GraphicsInterface::new(&mut simulation, false);
+        let (tx, rx) = mpsc::channel::<node_events::NodeEvent>();
+        thread::spawn(move || {
+            thread::sleep(Duration::new(1, 0));
+            let remove_node_event = node_events::NodeEvent {
+                remove_node_event: Some(node_events::RemoveNodeEvent { node_id }),
+                ..Default::default()
+            };
+            send_event(&tx, remove_node_event);
+            thread::sleep(Duration::new(1, 0));
+            send_close_event(&tx);
+        });
+        graphics_interface.run(rx);
+
+        assert!(simulation.nodes.is_empty());
+    }
+
+    fn send_close_event(tx: &mpsc::Sender<node_events::NodeEvent>) {
+        let close_event = node_events::NodeEvent {
             close_node_event: Some(CloseEvent {}),
             ..Default::default()
-        });
+        };
+        send_event(tx, close_event);
+    }
+
+    fn send_event(tx: &mpsc::Sender<node_events::NodeEvent>, event: node_events::NodeEvent) {
+        _ = tx.send(event);
     }
 }
