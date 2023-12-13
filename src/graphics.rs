@@ -41,9 +41,10 @@ impl<'a> GraphicsInterface<'a> {
     ) -> GraphicsInterface<'a> {
         let context = sdl2::init().unwrap();
         let event = context.event().unwrap();
-        event
-            .register_custom_event::<node_events::NodeEvent>()
-            .unwrap();
+        match event.register_custom_event::<node_events::NodeEvent>() {
+            Ok(_) => (),
+            Err(err) => println!("{}", err),
+        };
         let scene = Self::init_scene(&context, create_display);
 
         GraphicsInterface {
