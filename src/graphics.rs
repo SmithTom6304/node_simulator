@@ -225,10 +225,9 @@ mod a_graphics_interface {
         let (tx, rx) = mpsc::channel::<node_events::NodeEvent>();
         thread::spawn(move || {
             thread::sleep(Duration::new(1, 0));
-            let node = node::Node {
-                id: node::NodeId(1),
-                position: Default::default(),
-            };
+            let id = node::NodeId(1);
+            let position = Default::default();
+            let node = node::Node::new(id, position);
             let add_node_event = node_events::NodeEvent {
                 add_node_event: Some(node_events::AddNodeEvent { node }),
                 ..Default::default()
@@ -239,17 +238,16 @@ mod a_graphics_interface {
         });
         graphics_interface.run(rx);
 
-        assert!(simulation.nodes.iter().any(|node| node.id.0 == 1));
+        assert!(simulation.nodes.iter().any(|node| node.id().0 == 1));
     }
 
     #[test]
     fn can_receive_remove_node_event() {
         let mut simulation = Simulation::new();
         let node_id = node::NodeId(1);
-        let node = node::Node {
-            id: node_id.clone(),
-            position: Default::default(),
-        };
+        let id = node_id.clone();
+        let position = Default::default();
+        let node = node::Node::new(id, position);
         simulation.add_node(node);
         let graphics_interface = GraphicsInterface::new(&mut simulation, false);
         let (tx, rx) = mpsc::channel::<node_events::NodeEvent>();

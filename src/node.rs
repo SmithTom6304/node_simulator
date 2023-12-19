@@ -2,8 +2,22 @@ use std::fmt;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Node {
-    pub id: NodeId,
-    pub position: NodePosition,
+    id: NodeId,
+    position: NodePosition,
+}
+
+impl Node {
+    pub fn new(id: NodeId, position: NodePosition) -> Self {
+        Node { id, position }
+    }
+
+    pub fn id(&self) -> &NodeId {
+        &self.id
+    }
+
+    pub fn position(&self) -> &NodePosition {
+        &self.position
+    }
 }
 
 #[derive(PartialEq, Eq, Hash, Copy, Clone, Debug)]
@@ -25,12 +39,6 @@ pub struct NodePosition {
 impl fmt::Display for NodePosition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "x: {}, y: {}", self.x, self.y)
-    }
-}
-
-impl Node {
-    pub fn new(id: NodeId, position: NodePosition) -> Self {
-        Node { id, position }
     }
 }
 

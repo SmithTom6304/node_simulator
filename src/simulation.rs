@@ -15,7 +15,7 @@ impl<'a> Simulation {
     }
 
     pub fn remove_node(&mut self, id: node::NodeId) {
-        self.nodes.retain(|node| node.id != id)
+        self.nodes.retain(|node| node.id() != &id)
     }
 }
 
