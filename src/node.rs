@@ -24,6 +24,8 @@ impl Node {
     pub fn position(&self) -> &Position {
         &self.position
     }
+
+    pub fn step(&mut self) {}
 }
 
 #[cfg(test)]

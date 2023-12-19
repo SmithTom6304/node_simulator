@@ -7,7 +7,7 @@ use sdl2;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::sync::mpsc;
-use std::time::Duration;
+use std::time::{self, Duration};
 
 #[cfg(feature = "wgpu")]
 mod camera;
@@ -80,10 +80,11 @@ impl<'a> GraphicsInterface<'a> {
 
     pub fn run(mut self, rx: mpsc::Receiver<node_events::NodeEvent>) {
         let mut event_pump = self.context.event_pump().unwrap();
-        let mut i = 0;
+        let target_fps = 60;
+        let target_duration = Duration::new(1, 0) / target_fps;
+        let print_poor_performance = false;
         'running: loop {
-            i = (i + 1) % 255;
-
+            let start_time = time::Instant::now();
             let ev = rx.try_recv();
             match ev {
                 Ok(e) => _ = self.event.push_custom_event(e),
@@ -106,6 +107,8 @@ impl<'a> GraphicsInterface<'a> {
             }
             // The rest of the game loop goes here...
 
+            self.simulation.step();
+
             let result = self.scene.render(
                 wgpu::Color {
                     r: 0.65,
@@ -119,7 +122,16 @@ impl<'a> GraphicsInterface<'a> {
                 println!("Render error - {}", result.err().unwrap());
             }
             self.scene.update();
-            ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+
+            let duration = time::Instant::now().duration_since(start_time);
+            match duration.cmp(&target_duration) {
+                std::cmp::Ordering::Less => std::thread::sleep(target_duration - duration),
+                std::cmp::Ordering::Equal => {}
+                std::cmp::Ordering::Greater => match print_poor_performance {
+                    true => println!("Poor performance - target frame duration was {:?}, achieved frame duration was {:?}", target_duration, duration),
+                    false => {},
+                },
+            }
         }
     }
 
