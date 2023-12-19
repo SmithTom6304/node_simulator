@@ -22,11 +22,11 @@ impl AddNodeEvent {
 }
 
 pub struct RemoveNodeEvent {
-    pub node_id: node::NodeId,
+    pub node_id: node::Id,
 }
 
 impl RemoveNodeEvent {
-    pub fn new(id: node::NodeId) -> NodeEvent {
+    pub fn new(id: node::Id) -> NodeEvent {
         NodeEvent {
             remove_node_event: Some(RemoveNodeEvent { node_id: id }),
             ..Default::default()

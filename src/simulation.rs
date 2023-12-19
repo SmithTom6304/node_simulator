@@ -14,14 +14,14 @@ impl<'a> Simulation {
         self.nodes.push(node)
     }
 
-    pub fn remove_node(&mut self, id: node::NodeId) {
+    pub fn remove_node(&mut self, id: node::Id) {
         self.nodes.retain(|node| node.id() != &id)
     }
 }
 
 #[cfg(test)]
 mod a_simulation {
-    use crate::node::{Node, NodeId, NodePosition};
+    use crate::node;
 
     use super::*;
 
@@ -34,9 +34,9 @@ mod a_simulation {
     #[test]
     fn can_add_node() {
         let mut simulation = Simulation::new();
-        let id = NodeId(1);
-        let position = NodePosition { x: 3, y: 5, z: 7 };
-        let node = Node::new(id, position);
+        let id = node::Id(1);
+        let position = node::Position { x: 3, y: 5, z: 7 };
+        let node = node::Node::new(id, position);
 
         simulation.add_node(node.clone());
 
@@ -47,9 +47,9 @@ mod a_simulation {
     #[test]
     fn can_remove_node() {
         let mut simulation = Simulation::new();
-        let id = NodeId(1);
-        let position = NodePosition { x: 3, y: 5, z: 7 };
-        let node = Node::new(id, position);
+        let id = node::Id(1);
+        let position = node::Position { x: 3, y: 5, z: 7 };
+        let node = node::Node::new(id, position);
 
         simulation.add_node(node.clone());
 

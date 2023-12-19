@@ -113,7 +113,7 @@ fn try_execute_add_command(args: ArgMatches) -> Option<node_events::AddNodeEvent
         println!("ID must be a u32");
         return None;
     }
-    let id = node::NodeId(id.unwrap());
+    let id = node::Id(id.unwrap());
 
     let position = args.get_one::<String>("position");
     let position = match position {
@@ -146,9 +146,9 @@ fn try_execute_add_command(args: ArgMatches) -> Option<node_events::AddNodeEvent
                     return None;
                 }
             };
-            node::NodePosition { x, y, z }
+            node::Position { x, y, z }
         }
-        None => node::NodePosition { x: 0, y: 0, z: 0 },
+        None => node::Position { x: 0, y: 0, z: 0 },
     };
 
     let node = node::Node::new(id, position);
@@ -162,6 +162,6 @@ fn try_execute_remove_command(args: ArgMatches) -> Option<node_events::RemoveNod
         println!("ID must be a u32");
         return None;
     }
-    let id = node::NodeId(id.unwrap());
+    let id = node::Id(id.unwrap());
     Some(node_events::RemoveNodeEvent { node_id: id })
 }
