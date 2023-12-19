@@ -9,6 +9,6 @@ pub struct Position {
 
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "x: {}, y: {}", self.x, self.y)
+        write!(f, "x: {}, y: {}, z: {}", self.x, self.y, self.z)
     }
 }
