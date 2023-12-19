@@ -19,6 +19,7 @@ impl fmt::Display for NodeId {
 pub struct NodePosition {
     pub x: i32,
     pub y: i32,
+    pub z: i32,
 }
 
 impl fmt::Display for NodePosition {
@@ -39,8 +40,9 @@ mod tests {
 
     #[test]
     fn is_created_from_id_and_position() {
-        let node = Node::new(NodeId(3), NodePosition { x: 5, y: 7 });
+        let node = Node::new(NodeId(3), NodePosition { x: 5, y: 7, z: 9 });
         assert_eq!(5, node.position.x);
         assert_eq!(7, node.position.y);
+        assert_eq!(9, node.position.z);
     }
 }

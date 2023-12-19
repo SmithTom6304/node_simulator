@@ -35,7 +35,7 @@ mod a_simulation {
     fn can_add_node() {
         let mut simulation = Simulation::new();
         let id = NodeId(1);
-        let position = NodePosition { x: 3, y: 5 };
+        let position = NodePosition { x: 3, y: 5, z: 7 };
         let node = Node::new(id, position);
 
         simulation.add_node(node.clone());
@@ -48,7 +48,7 @@ mod a_simulation {
     fn can_remove_node() {
         let mut simulation = Simulation::new();
         let id = NodeId(1);
-        let position = NodePosition { x: 3, y: 5 };
+        let position = NodePosition { x: 3, y: 5, z: 7 };
         let node = Node::new(id, position);
 
         simulation.add_node(node.clone());

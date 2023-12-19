@@ -121,8 +121,8 @@ fn try_execute_add_command(args: ArgMatches) -> Option<node_events::AddNodeEvent
             let pos_string = pos_string.split(',');
             let positions: Vec<Result<i32, std::num::ParseIntError>> =
                 pos_string.map(|s| s.parse::<i32>()).collect();
-            if positions.len() != 2 {
-                println!("Position must have 2 values");
+            if positions.len() != 3 {
+                println!("Position must have 3 values");
                 return None;
             }
             let x = match &positions[0] {
@@ -139,9 +139,16 @@ fn try_execute_add_command(args: ArgMatches) -> Option<node_events::AddNodeEvent
                     return None;
                 }
             };
-            node::NodePosition { x, y }
+            let z = match &positions[2] {
+                Ok(number) => *number,
+                Err(_) => {
+                    println!("Position z must be an i32");
+                    return None;
+                }
+            };
+            node::NodePosition { x, y, z }
         }
-        None => node::NodePosition { x: 0, y: 0 },
+        None => node::NodePosition { x: 0, y: 0, z: 0 },
     };
 
     let node = node::Node::new(id, position);
