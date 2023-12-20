@@ -1,3 +1,5 @@
+use cgmath::{InnerSpace, Zero};
+
 use super::node;
 
 #[derive(Clone)]
@@ -24,8 +26,25 @@ impl<'a> Simulation {
     }
 
     pub fn step(&mut self) {
+        let nodes = self.nodes.clone();
+        let node_force_function = |node: &mut node::Node| {
+            let nodes = nodes.clone();
+            let scaling_factor = |distance: cgmath::Point3<f32>| {
+                let force_value = cgmath::Point3::new(1.0, 1.0, 1.0) - distance;
+                f32::max(1.0 - force_value.magnitude(), 0.0)
+            };
+            let mut total_force = 0.0;
+            for other in nodes {
+                if other == *node {
+                    continue;
+                }
+                let distance = cgmath::Point3::<f32>::new(100.0, 100.0, 100.0);
+                total_force += scaling_factor(distance);
+            }
+            node.set_position(node::Position { x: 0, y: 0, z: 0 })
+        };
         for node in self.nodes.iter_mut() {
-            node.step();
+            node.step(node_force_function);
         }
     }
 

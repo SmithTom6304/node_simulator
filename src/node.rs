@@ -1,6 +1,7 @@
 use std::fmt;
 
 pub mod event;
+mod force;
 pub mod id;
 pub mod position;
 
@@ -12,6 +13,8 @@ pub use position::Position;
 pub struct Node {
     id: Id,
     position: Position,
+    pub internal_force: force::Force,
+    pub external_force: force::Force,
     //TODO Added for debugging purposes
     toggle: bool,
 }
@@ -21,6 +24,8 @@ impl Node {
         Node {
             id,
             position,
+            internal_force: force::Force(cgmath::Vector3::<f32>::new(0.0, 0.0, 0.0)),
+            external_force: force::Force(cgmath::Vector3::<f32>::new(0.0, 0.0, 0.0)),
             toggle: true,
         }
     }
@@ -33,12 +38,15 @@ impl Node {
         &self.position
     }
 
-    pub fn step(&mut self) {
-        self.toggle = !self.toggle;
-        match self.toggle {
-            true => self.position.x += 1,
-            false => self.position.x -= 1,
-        }
+    pub fn set_position(&mut self, position: Position) {
+        self.position = position
+    }
+
+    pub fn step<F>(&mut self, mut node_force_function: F) -> ()
+    where
+        F: FnMut(&mut Self),
+    {
+        node_force_function(self);
     }
 }
 
