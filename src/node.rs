@@ -12,11 +12,17 @@ pub use position::Position;
 pub struct Node {
     id: Id,
     position: Position,
+    //TODO Added for debugging purposes
+    toggle: bool,
 }
 
 impl Node {
     pub fn new(id: Id, position: Position) -> Self {
-        Node { id, position }
+        Node {
+            id,
+            position,
+            toggle: true,
+        }
     }
 
     pub fn id(&self) -> &Id {
@@ -27,7 +33,13 @@ impl Node {
         &self.position
     }
 
-    pub fn step(&mut self) {}
+    pub fn step(&mut self) {
+        self.toggle = !self.toggle;
+        match self.toggle {
+            true => self.position.x += 1,
+            false => self.position.x -= 1,
+        }
+    }
 }
 
 #[cfg(test)]

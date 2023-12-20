@@ -48,7 +48,8 @@ fn run_simulation(
     simulation_tx: mpsc::Sender<Arc<Mutex<simulation::Simulation>>>,
     node_event_rx: mpsc::Receiver<node::Event>,
 ) {
-    let target_fps = 60;
+    //TODO Lowered for debugging purposes
+    let target_fps = 2;
     let target_duration = Duration::new(1, 0) / target_fps;
     let print_poor_performance = false;
 
