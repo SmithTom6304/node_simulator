@@ -23,7 +23,7 @@ impl CommandGenerator {
             .short('p')
             .help("Comma separated value position of the node")
             .required(false)
-            .default_value("0,0");
+            .default_value("0,0,0");
 
         Command::new("ADD")
             .arg(id_arg)
