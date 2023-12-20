@@ -89,6 +89,7 @@ fn read_input(
     let remove_command = commands::CommandGenerator::remove_command();
     let close_command = commands::CommandGenerator::close_command();
     let toggle_scene_command = commands::CommandGenerator::toggle_scene_command();
+    let set_target_fps_command = commands::CommandGenerator::target_fps_command();
     loop {
         let mut input = String::new();
         io::stdin()
@@ -134,6 +135,27 @@ fn read_input(
             }
             Some(command_name) if *command_name == toggle_scene_command.get_name() => {
                 let result = scene_event_tx.send(scene_event::ToggleSceneEvent::new());
+                let _ = match result {
+                    Ok(_) => (),
+                    Err(err) => println!("{}", err),
+                };
+            }
+            Some(command_name) if *command_name == set_target_fps_command.get_name() => {
+                let args = set_target_fps_command
+                    .clone()
+                    .try_get_matches_from(input)
+                    .unwrap();
+                let fps = match args.get_one::<String>("target_fps") {
+                    Some(fps) => match fps.parse::<u32>() {
+                        Ok(fps) => Some(fps),
+                        Err(_) => {
+                            println!("Target fps must be a u32");
+                            None
+                        }
+                    },
+                    None => None,
+                };
+                let result = scene_event_tx.send(scene_event::SetTargetFpsEvent::new(fps));
                 let _ = match result {
                     Ok(_) => (),
                     Err(err) => println!("{}", err),

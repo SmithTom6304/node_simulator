@@ -9,6 +9,7 @@ impl CommandGenerator {
             .subcommand(Self::remove_command())
             .subcommand(Self::close_command())
             .subcommand(Self::toggle_scene_command())
+            .subcommand(Self::target_fps_command())
             .disable_help_subcommand(true)
             .help_template("Commands:\n{subcommands}")
     }
@@ -48,5 +49,12 @@ impl CommandGenerator {
 
     pub fn toggle_scene_command() -> clap::Command {
         Command::new("TOGGLE_SCENE").about("Toggle the program scene")
+    }
+
+    pub fn target_fps_command() -> clap::Command {
+        let target_fps_arg = Arg::new("target_fps").required(false);
+        Command::new("FPS")
+            .about("Set the target fps")
+            .arg(target_fps_arg)
     }
 }

@@ -27,6 +27,7 @@ pub struct GraphicsInterface {
     pub context: sdl2::Sdl,
     pub event: sdl2::EventSubsystem,
     pub scene: Box<dyn scene_implementations::Scene>,
+    target_fps: u32,
 }
 
 enum EventStatus {
@@ -52,6 +53,7 @@ impl GraphicsInterface {
             context,
             event,
             scene,
+            target_fps: 60,
         }
     }
 
@@ -80,8 +82,7 @@ impl GraphicsInterface {
 
     pub fn run(mut self, rx: mpsc::Receiver<scene_event::SceneEvent>) {
         let mut event_pump = self.context.event_pump().unwrap();
-        let target_fps = 60;
-        let target_duration = Duration::new(1, 0) / target_fps;
+        let target_duration = |target_fps| Duration::new(1, 0) / target_fps;
         let print_poor_performance = false;
         let mut simulation = self.try_update_simulation();
         'running: loop {
@@ -133,6 +134,7 @@ impl GraphicsInterface {
             self.scene.update();
 
             let duration = time::Instant::now().duration_since(start_time);
+            let target_duration = target_duration(self.target_fps);
             match duration.cmp(&target_duration) {
                 std::cmp::Ordering::Less => std::thread::sleep(target_duration - duration),
                 std::cmp::Ordering::Equal => {}
@@ -177,6 +179,10 @@ impl GraphicsInterface {
         println!("Feature 'wgpu' is required to display scene.");
     }
 
+    pub fn set_target_fps(&mut self, target_fps: u32) {
+        self.target_fps = target_fps;
+    }
+
     fn handle_event(&mut self, event: sdl2::event::Event) -> EventStatus {
         if self.scene.input(&event) {
             return EventStatus::Handled;
@@ -212,6 +218,13 @@ impl GraphicsInterface {
             }
             None => (),
         };
+        match event.set_target_fps_event {
+            Some(event) => match event.target_fps {
+                Some(target_fps) => self.set_target_fps(target_fps),
+                None => println!("FPS - {}", self.target_fps),
+            },
+            None => {}
+        }
         EventStatus::Handled
     }
 }
