@@ -1,4 +1,4 @@
-use cgmath::{InnerSpace, Zero};
+use cgmath::{EuclideanSpace, InnerSpace, MetricSpace, Zero};
 
 use super::node;
 
@@ -13,7 +13,7 @@ impl<'a> Simulation {
         let nodes = Vec::new();
         Simulation {
             nodes,
-            target_tps: 2,
+            target_tps: 60,
         }
     }
 
@@ -27,28 +27,32 @@ impl<'a> Simulation {
 
     pub fn step(&mut self) {
         let nodes = self.nodes.clone();
-        let node_force_function = |node: &mut node::Node| {
+        let internal_force_function = |node: &mut node::Node| -> cgmath::Vector3<f32> {
             let nodes = nodes.clone();
-            let scaling_factor = |distance: cgmath::Point3<f32>| {
-                let force_value = cgmath::Point3::new(1.0, 1.0, 1.0) - distance;
-                f32::max(1.0 - force_value.magnitude(), 0.0)
+
+            let scaling_factor = |distance: cgmath::Vector3<f32>| {
+                let distance_dropoff = 5.0;
+                let distance_dropoff =
+                    cgmath::Point3::new(distance_dropoff, distance_dropoff, distance_dropoff);
+                let force_value = EuclideanSpace::to_vec(distance_dropoff - distance);
+                match 20.0 - force_value.magnitude() > 0.0 {
+                    true => force_value / 1000.0,
+                    false => cgmath::Vector3::<f32>::zero(),
+                }
             };
-            let mut total_force = 0.0;
+
+            let mut total_force = cgmath::Vector3::<f32>::zero();
             for other in nodes {
                 if other == *node {
                     continue;
                 }
-                let distance = cgmath::Point3::<f32>::new(100.0, 100.0, 100.0);
+                let distance = node.position().0 - other.position().0;
                 total_force += scaling_factor(distance);
             }
-            node.set_position(node::Position(cgmath::Point3 {
-                x: 0.0,
-                y: 0.0,
-                z: 0.0,
-            }))
+            total_force
         };
         for node in self.nodes.iter_mut() {
-            node.step(node_force_function);
+            node.step(internal_force_function);
         }
     }
 

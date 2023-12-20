@@ -13,8 +13,8 @@ pub use position::Position;
 pub struct Node {
     id: Id,
     position: Position,
-    pub internal_force: force::Force,
-    pub external_force: force::Force,
+    pub incoming_force: force::Force,
+    pub outgoing_force: force::Force,
     //TODO Added for debugging purposes
     toggle: bool,
 }
@@ -24,8 +24,8 @@ impl Node {
         Node {
             id,
             position,
-            internal_force: force::Force(cgmath::Vector3::<f32>::new(0.0, 0.0, 0.0)),
-            external_force: force::Force(cgmath::Vector3::<f32>::new(0.0, 0.0, 0.0)),
+            incoming_force: force::Force(cgmath::Vector3::<f32>::new(0.0, 0.0, 0.0)),
+            outgoing_force: force::Force(cgmath::Vector3::<f32>::new(0.0, 0.0, 0.0)),
             toggle: true,
         }
     }
@@ -42,11 +42,19 @@ impl Node {
         self.position = position
     }
 
+    fn update_position(&mut self) {
+        self.position.0 -= self.incoming_force.0;
+        // Dampen
+        self.incoming_force.0 *= 0.9;
+    }
+
     pub fn step<F>(&mut self, mut node_force_function: F) -> ()
     where
-        F: FnMut(&mut Self),
+        F: FnMut(&mut Self) -> cgmath::Vector3<f32>,
     {
-        node_force_function(self);
+        let internal_force = node_force_function(self);
+        self.incoming_force.0 += internal_force;
+        self.update_position();
     }
 }
 
