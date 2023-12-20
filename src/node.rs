@@ -56,9 +56,16 @@ mod tests {
 
     #[test]
     fn is_created_from_id_and_position() {
-        let node = Node::new(Id(3), Position { x: 5, y: 7, z: 9 });
-        assert_eq!(5, node.position.x);
-        assert_eq!(7, node.position.y);
-        assert_eq!(9, node.position.z);
+        let node = Node::new(
+            Id(3),
+            Position(cgmath::Point3 {
+                x: 5.0,
+                y: 7.0,
+                z: 9.0,
+            }),
+        );
+        assert_eq!(5.0, node.position.0.x);
+        assert_eq!(7.0, node.position.0.y);
+        assert_eq!(9.0, node.position.0.z);
     }
 }

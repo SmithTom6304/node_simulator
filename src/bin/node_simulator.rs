@@ -232,9 +232,13 @@ fn try_execute_add_command(args: ArgMatches) -> Option<node::AddNodeEvent> {
                     return None;
                 }
             };
-            node::Position { x, y, z }
+            node::Position(cgmath::Point3 {
+                x: x as f32,
+                y: y as f32,
+                z: z as f32,
+            })
         }
-        None => node::Position { x: 0, y: 0, z: 0 },
+        None => node::Position::default(),
     };
 
     let node = node::Node::new(id, position);

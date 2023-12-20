@@ -41,7 +41,11 @@ impl<'a> Simulation {
                 let distance = cgmath::Point3::<f32>::new(100.0, 100.0, 100.0);
                 total_force += scaling_factor(distance);
             }
-            node.set_position(node::Position { x: 0, y: 0, z: 0 })
+            node.set_position(node::Position(cgmath::Point3 {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            }))
         };
         for node in self.nodes.iter_mut() {
             node.step(node_force_function);
@@ -91,7 +95,11 @@ mod a_simulation {
     fn can_add_node() {
         let mut simulation = Simulation::new();
         let id = node::Id(1);
-        let position = node::Position { x: 3, y: 5, z: 7 };
+        let position = node::Position(cgmath::Point3 {
+            x: 3.0,
+            y: 5.0,
+            z: 7.0,
+        });
         let node = node::Node::new(id, position);
 
         simulation.add_node(node.clone());
@@ -104,7 +112,11 @@ mod a_simulation {
     fn can_remove_node() {
         let mut simulation = Simulation::new();
         let id = node::Id(1);
-        let position = node::Position { x: 3, y: 5, z: 7 };
+        let position = node::Position(cgmath::Point3 {
+            x: 3.0,
+            y: 5.0,
+            z: 7.0,
+        });
         let node = node::Node::new(id, position);
 
         simulation.add_node(node.clone());
