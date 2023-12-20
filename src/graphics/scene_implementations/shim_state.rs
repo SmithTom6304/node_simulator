@@ -19,7 +19,7 @@ impl Scene for ShimState {
     fn render(
         &mut self,
         _clear_colour: wgpu::Color,
-        _simulation: &simulation::Simulation,
+        _simulation: Option<&simulation::Simulation>,
     ) -> Result<(), wgpu::SurfaceError> {
         Ok(())
     }

@@ -307,7 +307,7 @@ impl super::Scene for State {
     fn render(
         &mut self,
         clear_colour: wgpu::Color,
-        simulation: &simulation::Simulation,
+        simulation: Option<&simulation::Simulation>,
     ) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
@@ -322,15 +322,18 @@ impl super::Scene for State {
 
         let mut node_instance_collection =
             instance_collection::InstanceCollection::new(self.node_model_id);
-        for node in simulation.nodes.iter() {
-            node_instance_collection.add(instance::Instance {
-                position: cgmath::Vector3 {
-                    x: node.position().x as f32,
-                    y: node.position().y as f32,
-                    z: 0.0,
-                },
-                rotation: cgmath::Quaternion::zero(),
-            })
+
+        if let Some(simulation) = simulation {
+            for node in simulation.nodes.iter() {
+                node_instance_collection.add(instance::Instance {
+                    position: cgmath::Vector3 {
+                        x: node.position().x as f32,
+                        y: node.position().y as f32,
+                        z: 0.0,
+                    },
+                    rotation: cgmath::Quaternion::zero(),
+                })
+            }
         }
 
         let instance_data =

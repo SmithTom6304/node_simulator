@@ -1,5 +1,6 @@
 use super::node;
 
+#[derive(Clone)]
 pub struct Simulation {
     pub nodes: Vec<node::Node>,
 }
@@ -22,6 +23,17 @@ impl<'a> Simulation {
         for node in self.nodes.iter_mut() {
             node.step();
         }
+    }
+
+    pub fn handle_event(&mut self, event: node::Event) {
+        match event.add_node_event {
+            Some(event) => self.add_node(event.node),
+            None => {}
+        };
+        match event.remove_node_event {
+            Some(event) => self.remove_node(event.node_id),
+            None => {}
+        };
     }
 }
 

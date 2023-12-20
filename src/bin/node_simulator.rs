@@ -1,17 +1,11 @@
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc, Mutex};
+use std::time::{self, Duration};
+use std::{io, thread};
 
-use clap::Parser;
-use node_simulator::commands;
-use node_simulator::graphics;
-use node_simulator::node;
-use node_simulator::simulation;
+use clap::{ArgMatches, Parser};
 
-use std::io;
-
-use std::thread;
-
-use clap::ArgMatches;
-use node_simulator::graphics::node_events;
+use node_simulator::graphics::{self, scene_event};
+use node_simulator::{commands, node, simulation};
 
 /// Program for running node-based simulations
 #[derive(Parser, Debug)]
@@ -30,18 +24,65 @@ fn main() {
 }
 
 pub fn run(_default_texture_path: Option<String>, create_display: bool) {
-    let mut simulation = simulation::Simulation::new();
-    let graphics_interface = graphics::GraphicsInterface::new(&mut simulation, create_display);
+    let simulation = Arc::new(Mutex::new(simulation::Simulation::new()));
+    let (simulation_tx, simulation_rx) = mpsc::channel::<Arc<Mutex<simulation::Simulation>>>();
+    let (scene_event_tx, scene_event_rx) = mpsc::channel::<scene_event::SceneEvent>();
+    let (node_event_tx, node_event_rx) = mpsc::channel::<node::Event>();
 
-    let (tx, rx) = mpsc::channel::<node_events::NodeEvent>();
+    let graphics_interface = graphics::GraphicsInterface::new(simulation_rx, create_display);
+
+    thread::spawn(move || {
+        let simulation = Arc::clone(&simulation);
+        run_simulation(simulation, simulation_tx, node_event_rx);
+    });
+
     thread::spawn(|| {
         println!("Running node_simulator...");
-        read_input(tx);
+        read_input(scene_event_tx, node_event_tx);
     });
-    graphics_interface.run(rx);
+    graphics_interface.run(scene_event_rx);
 }
 
-fn read_input(tx: mpsc::Sender<node_events::NodeEvent>) {
+fn run_simulation(
+    simulation: Arc<Mutex<simulation::Simulation>>,
+    simulation_tx: mpsc::Sender<Arc<Mutex<simulation::Simulation>>>,
+    node_event_rx: mpsc::Receiver<node::Event>,
+) {
+    let target_fps = 60;
+    let target_duration = Duration::new(1, 0) / target_fps;
+    let print_poor_performance = false;
+
+    loop {
+        let event = node_event_rx.try_recv();
+        let start_time = time::Instant::now();
+        {
+            let mut sim = simulation.lock().unwrap();
+
+            match event {
+                Ok(event) => sim.handle_event(event),
+                Err(_) => {}
+            }
+            sim.step();
+        }
+
+        let _ = simulation_tx.send(simulation.clone());
+
+        let duration = time::Instant::now().duration_since(start_time);
+        match duration.cmp(&target_duration) {
+                std::cmp::Ordering::Less => std::thread::sleep(target_duration - duration),
+                std::cmp::Ordering::Equal => {}
+                std::cmp::Ordering::Greater => match print_poor_performance {
+                    true => println!("Poor performance - target frame duration was {:?}, achieved frame duration was {:?}", target_duration, duration),
+                    false => {},
+                },
+            }
+    }
+}
+
+fn read_input(
+    scene_event_tx: mpsc::Sender<scene_event::SceneEvent>,
+    node_event_tx: mpsc::Sender<node::Event>,
+) {
     let mut help_command = commands::CommandGenerator::help_command();
     let add_command = commands::CommandGenerator::add_command();
     let remove_command = commands::CommandGenerator::remove_command();
@@ -63,7 +104,7 @@ fn read_input(tx: mpsc::Sender<node_events::NodeEvent>) {
                 let args = add_command.clone().try_get_matches_from(input);
                 match args {
                     Ok(result) => {
-                        _ = tx.send(node_events::NodeEvent {
+                        _ = node_event_tx.send(node::Event {
                             add_node_event: try_execute_add_command(result),
                             ..Default::default()
                         })
@@ -75,7 +116,7 @@ fn read_input(tx: mpsc::Sender<node_events::NodeEvent>) {
                 let args = remove_command.clone().try_get_matches_from(input);
                 match args {
                     Ok(result) => {
-                        _ = tx.send(node_events::NodeEvent {
+                        _ = node_event_tx.send(node::Event {
                             remove_node_event: try_execute_remove_command(result),
                             ..Default::default()
                         })
@@ -84,14 +125,14 @@ fn read_input(tx: mpsc::Sender<node_events::NodeEvent>) {
                 }
             }
             Some(command_name) if *command_name == close_command.get_name() => {
-                let result = tx.send(node_events::CloseEvent::new());
+                let result = scene_event_tx.send(scene_event::CloseEvent::new());
                 let _ = match result {
                     Ok(_) => (),
                     Err(err) => println!("{}", err),
                 };
             }
             Some(command_name) if *command_name == toggle_scene_command.get_name() => {
-                let result = tx.send(node_events::ToggleSceneEvent::new());
+                let result = scene_event_tx.send(scene_event::ToggleSceneEvent::new());
                 let _ = match result {
                     Ok(_) => (),
                     Err(err) => println!("{}", err),
@@ -106,7 +147,7 @@ fn read_input(tx: mpsc::Sender<node_events::NodeEvent>) {
     }
 }
 
-fn try_execute_add_command(args: ArgMatches) -> Option<node_events::AddNodeEvent> {
+fn try_execute_add_command(args: ArgMatches) -> Option<node::AddNodeEvent> {
     let id = args.get_one::<String>("id").expect("ID arg was missing");
     let id = id.parse::<u32>();
     if id.is_err() {
@@ -152,10 +193,10 @@ fn try_execute_add_command(args: ArgMatches) -> Option<node_events::AddNodeEvent
     };
 
     let node = node::Node::new(id, position);
-    Some(node_events::AddNodeEvent { node })
+    Some(node::AddNodeEvent { node })
 }
 
-fn try_execute_remove_command(args: ArgMatches) -> Option<node_events::RemoveNodeEvent> {
+fn try_execute_remove_command(args: ArgMatches) -> Option<node::RemoveNodeEvent> {
     let id = args.get_one::<String>("id").expect("ID arg was missing");
     let id = id.parse::<u32>();
     if id.is_err() {
@@ -163,5 +204,5 @@ fn try_execute_remove_command(args: ArgMatches) -> Option<node_events::RemoveNod
         return None;
     }
     let id = node::Id(id.unwrap());
-    Some(node_events::RemoveNodeEvent { node_id: id })
+    Some(node::RemoveNodeEvent { node_id: id })
 }

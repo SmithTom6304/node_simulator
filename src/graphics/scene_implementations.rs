@@ -16,7 +16,7 @@ pub trait Scene {
     fn render(
         &mut self,
         clear_colour: wgpu::Color,
-        simulation: &simulation::Simulation,
+        simulation: Option<&simulation::Simulation>,
     ) -> Result<(), wgpu::SurfaceError>;
     fn as_any(&self) -> &dyn Any;
 }

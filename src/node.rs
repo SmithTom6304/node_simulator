@@ -1,8 +1,10 @@
 use std::fmt;
 
+pub mod event;
 pub mod id;
 pub mod position;
 
+pub use event::{AddNodeEvent, Event, RemoveNodeEvent};
 pub use id::Id;
 pub use position::Position;
 
