@@ -49,8 +49,8 @@ fn run_simulation(
     node_event_rx: mpsc::Receiver<node::Event>,
 ) {
     //TODO Lowered for debugging purposes
-    let target_fps = 2;
-    let target_duration = Duration::new(1, 0) / target_fps;
+    let get_target_duration = |target_tps| Duration::new(1, 0) / target_tps;
+    let mut target_duration;
     let print_poor_performance = false;
 
     loop {
@@ -58,7 +58,7 @@ fn run_simulation(
         let start_time = time::Instant::now();
         {
             let mut sim = simulation.lock().unwrap();
-
+            target_duration = get_target_duration(sim.target_tps());
             match event {
                 Ok(event) => sim.handle_event(event),
                 Err(_) => {}
@@ -90,6 +90,7 @@ fn read_input(
     let close_command = commands::CommandGenerator::close_command();
     let toggle_scene_command = commands::CommandGenerator::toggle_scene_command();
     let set_target_fps_command = commands::CommandGenerator::target_fps_command();
+    let set_target_tps_command = commands::CommandGenerator::target_tps_command();
     loop {
         let mut input = String::new();
         io::stdin()
@@ -156,6 +157,27 @@ fn read_input(
                     None => None,
                 };
                 let result = scene_event_tx.send(scene_event::SetTargetFpsEvent::new(fps));
+                let _ = match result {
+                    Ok(_) => (),
+                    Err(err) => println!("{}", err),
+                };
+            }
+            Some(command_name) if *command_name == set_target_tps_command.get_name() => {
+                let args = set_target_tps_command
+                    .clone()
+                    .try_get_matches_from(input)
+                    .unwrap();
+                let tps = match args.get_one::<String>("target_tps") {
+                    Some(tps) => match tps.parse::<u32>() {
+                        Ok(fps) => Some(fps),
+                        Err(_) => {
+                            println!("Target tps must be a u32");
+                            None
+                        }
+                    },
+                    None => None,
+                };
+                let result = node_event_tx.send(node::SetTargetTpsEvent::new(tps));
                 let _ = match result {
                     Ok(_) => (),
                     Err(err) => println!("{}", err),

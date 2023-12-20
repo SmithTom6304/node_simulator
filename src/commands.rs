@@ -10,6 +10,7 @@ impl CommandGenerator {
             .subcommand(Self::close_command())
             .subcommand(Self::toggle_scene_command())
             .subcommand(Self::target_fps_command())
+            .subcommand(Self::target_tps_command())
             .disable_help_subcommand(true)
             .help_template("Commands:\n{subcommands}")
     }
@@ -56,5 +57,12 @@ impl CommandGenerator {
         Command::new("FPS")
             .about("Set the target fps")
             .arg(target_fps_arg)
+    }
+
+    pub fn target_tps_command() -> clap::Command {
+        let target_tps_arg = Arg::new("target_tps").required(false);
+        Command::new("TPS")
+            .about("Set the target tps")
+            .arg(target_tps_arg)
     }
 }

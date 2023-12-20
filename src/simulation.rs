@@ -3,12 +3,16 @@ use super::node;
 #[derive(Clone)]
 pub struct Simulation {
     pub nodes: Vec<node::Node>,
+    target_tps: u32,
 }
 
 impl<'a> Simulation {
     pub fn new() -> Simulation {
         let nodes = Vec::new();
-        Simulation { nodes }
+        Simulation {
+            nodes,
+            target_tps: 2,
+        }
     }
 
     pub fn add_node(&mut self, node: node::Node) {
@@ -34,6 +38,21 @@ impl<'a> Simulation {
             Some(event) => self.remove_node(event.node_id),
             None => {}
         };
+        match event.set_target_tps_event {
+            Some(event) => match event.target_tps {
+                Some(target_tps) => self.set_target_tps(target_tps),
+                None => println!("TPS - {}", self.target_tps),
+            },
+            None => {}
+        }
+    }
+
+    pub fn target_tps(&self) -> u32 {
+        self.target_tps
+    }
+
+    pub fn set_target_tps(&mut self, target_tps: u32) {
+        self.target_tps = target_tps;
     }
 }
 
