@@ -15,7 +15,8 @@ pub struct Node {
     id: Id,
     position: Position,
     pub velocity: force::Force,
-    pub outgoing_force: force::Force,
+    pub mass: f32,
+
     //TODO Added for debugging purposes
     toggle: bool,
 }
@@ -26,7 +27,7 @@ impl Node {
             id,
             position,
             velocity: force::Force(cgmath::Vector3::<f32>::new(0.0, 0.0, 0.0)),
-            outgoing_force: force::Force(cgmath::Vector3::<f32>::new(0.0, 0.0, 0.0)),
+            mass: 1.0,
             toggle: true,
         }
     }

@@ -43,9 +43,10 @@ impl Force {
         // https://en.wikipedia.org/wiki/Newton%27s_law_of_universal_gravitation
         //TODO Replace with other node "Gravitational force" value.
         let g = 1.0;
-        let m1 = 1.0;
-        let m2 = 1.0;
-        let force = -g * (m1 * m2 / magnitude_distance.powf(2.0)); // Negate to push away
+        let m1 = node.mass;
+        let m2 = other.mass;
+        let r = magnitude_distance;
+        let force = -g * (m1 * m2 / r.powf(2.0)); // Negate to push away
         let force = force * distance;
         Force(force)
     }
