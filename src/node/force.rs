@@ -55,8 +55,10 @@ impl Force {
 
         // Newtons law of universal gravitation
         // https://en.wikipedia.org/wiki/Newton%27s_law_of_universal_gravitation
-        //TODO Replace with other node "Gravitational force" value.
-        let g = default_gravitational_constant;
+        let g = match other.gravitational_constant_override {
+            Some(gravitational_constant) => gravitational_constant,
+            None => *default_gravitational_constant,
+        };
         let m1 = node.mass;
         let m2 = other.mass;
         let r = magnitude_distance;
