@@ -52,6 +52,10 @@ impl Force {
         if magnitude_distance > Self::FORCE_RADIUS as f32 {
             return Self::zero();
         }
+        // Avoid divide by zero errors
+        if distance == cgmath::Vector3::zero() {
+            return Self::zero();
+        }
 
         // Newtons law of universal gravitation
         // https://en.wikipedia.org/wiki/Newton%27s_law_of_universal_gravitation
