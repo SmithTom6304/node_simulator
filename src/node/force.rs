@@ -93,9 +93,10 @@ impl Force {
 
 #[cfg(test)]
 mod a_force {
+    use cgmath::Zero;
     use rstest::rstest;
 
-    use crate::node::Force;
+    use crate::node::{Force, Id, Node, Position};
 
     #[rstest]
     #[case((0.0, 0.0, 0.0), (1.0, 0.0, 1.0), (2.0, 3.0, 1.0), (3.0, 3.0, 2.0))]
@@ -115,5 +116,91 @@ mod a_force {
         let expected_sum = Force(cgmath::Vector3 { x, y, z });
         let iter = vec![force_1, force_2, force_3].into_iter();
         assert_eq!(expected_sum, iter.sum());
+    }
+
+    #[rstest]
+    #[case((0.0, 0.5, 0.0), (1.0, 0.0, -1.0), (1.0, 0.5, -1.0))]
+    fn can_be_added(
+        #[case] force_1: (f32, f32, f32),
+        #[case] force_2: (f32, f32, f32),
+        #[case] expected_force: (f32, f32, f32),
+    ) {
+        let (x, y, z) = force_1;
+        let force_1 = Force(cgmath::Vector3 { x, y, z });
+        let (x, y, z) = force_2;
+        let force_2 = Force(cgmath::Vector3 { x, y, z });
+        let (x, y, z) = expected_force;
+        let expected_sum = Force(cgmath::Vector3 { x, y, z });
+        assert_eq!(expected_sum, force_1 + force_2);
+    }
+
+    #[rstest]
+    #[case((0.0, 0.5, 0.0), (1.0, 0.0, -1.0), (1.0, 0.5, -1.0))]
+    fn can_be_add_assigned(
+        #[case] force_1: (f32, f32, f32),
+        #[case] force_2: (f32, f32, f32),
+        #[case] expected_force: (f32, f32, f32),
+    ) {
+        let (x, y, z) = force_1;
+        let mut force_1 = Force(cgmath::Vector3 { x, y, z });
+        let (x, y, z) = force_2;
+        let force_2 = Force(cgmath::Vector3 { x, y, z });
+        let (x, y, z) = expected_force;
+        let expected_sum = Force(cgmath::Vector3 { x, y, z });
+        force_1 += force_2;
+        assert_eq!(expected_sum, force_1);
+    }
+
+    #[test]
+    fn zero_force() {
+        assert_eq!(cgmath::Vector3::zero(), Force::zero().0)
+    }
+
+    #[test]
+    fn can_calculate_incoming_force() {
+        let node_a = Node::new(
+            Id(1),
+            Position(cgmath::Point3 {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            }),
+        );
+        let node_b = Node::new(
+            Id(2),
+            Position(cgmath::Point3 {
+                x: 1.0,
+                y: 0.0,
+                z: 0.0,
+            }),
+        );
+        let gravitational_constant = 1.0;
+
+        let expected_force_on_node_a = Force(cgmath::Vector3 {
+            x: -1.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let force_on_node_a = super::Force::calculate_incoming_force(
+            &node_a,
+            &vec![&node_b],
+            &gravitational_constant,
+        );
+
+        let expected_force_on_node_b = Force(cgmath::Vector3 {
+            x: 1.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let force_on_node_b = super::Force::calculate_incoming_force(
+            &node_b,
+            &vec![&node_a],
+            &gravitational_constant,
+        );
+
+        assert_eq!(expected_force_on_node_a, force_on_node_a);
+        assert_eq!(expected_force_on_node_b, force_on_node_b);
+        let forces_are_opposite = force_on_node_a == -force_on_node_b;
+        assert!(forces_are_opposite);
     }
 }
