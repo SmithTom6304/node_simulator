@@ -19,7 +19,7 @@ impl AddAssign for Force {
 }
 
 impl Force {
-    const FORCE_RADIUS: u32 = 2;
+    const FORCE_RADIUS: u32 = 5;
     pub fn zero() -> Self {
         Self(cgmath::Vector3::zero())
     }
