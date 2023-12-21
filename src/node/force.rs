@@ -1,4 +1,7 @@
-use std::{iter::Sum, ops::AddAssign};
+use std::{
+    iter::Sum,
+    ops::{Add, AddAssign, Neg},
+};
 
 use cgmath::{self, InnerSpace, Zero};
 
@@ -12,9 +15,25 @@ impl Sum for Force {
     }
 }
 
+impl Add for Force {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
 impl AddAssign for Force {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0
+    }
+}
+
+impl Neg for Force {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self(-self.0)
     }
 }
 
