@@ -27,32 +27,15 @@ impl<'a> Simulation {
 
     pub fn step(&mut self) {
         let nodes = self.nodes.clone();
-        let internal_force_function = |node: &mut node::Node| -> cgmath::Vector3<f32> {
-            let nodes = nodes.clone();
 
-            let scaling_factor = |distance: cgmath::Vector3<f32>| {
-                let distance_dropoff = 5.0;
-                let distance_dropoff =
-                    cgmath::Point3::new(distance_dropoff, distance_dropoff, distance_dropoff);
-                let force_value = EuclideanSpace::to_vec(distance_dropoff - distance);
-                match 20.0 - force_value.magnitude() > 0.0 {
-                    true => force_value / 1000.0,
-                    false => cgmath::Vector3::<f32>::zero(),
-                }
-            };
-
-            let mut total_force = cgmath::Vector3::<f32>::zero();
-            for other in nodes {
-                if other == *node {
-                    continue;
-                }
-                let distance = node.position().0 - other.position().0;
-                total_force += scaling_factor(distance);
-            }
-            total_force
+        let others = nodes.clone();
+        let node_force_function = |node: &mut node::Node| -> node::Force {
+            let others = &others.iter().filter(|n| n != &node).collect();
+            node::Force::calculate_incoming_force(node, others)
         };
+
         for node in self.nodes.iter_mut() {
-            node.step(internal_force_function);
+            node.step(node_force_function);
         }
     }
 

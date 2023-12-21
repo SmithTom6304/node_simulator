@@ -1,4 +1,79 @@
-use cgmath;
+use std::{iter::Sum, ops::AddAssign};
+
+use cgmath::{self, InnerSpace, Zero};
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Force(pub cgmath::Vector3<f32>);
+
+impl Sum for Force {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        let summed_vector = iter.map(|f| f.0).sum();
+        Self(summed_vector)
+    }
+}
+
+impl AddAssign for Force {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0
+    }
+}
+
+impl Force {
+    const FORCE_RADIUS: u32 = 2;
+    pub fn zero() -> Self {
+        Self(cgmath::Vector3::zero())
+    }
+
+    pub fn calculate_incoming_force(node: &super::Node, others: &Vec<&super::Node>) -> Self {
+        let resultant_force = others
+            .iter()
+            .map(|other| Self::calculate_incoming_force_from_node(node, other))
+            .sum();
+        resultant_force
+    }
+
+    fn calculate_incoming_force_from_node(node: &super::Node, other: &super::Node) -> Self {
+        let distance = node.position.0 - other.position.0;
+        let magnitude_distance = distance.magnitude();
+        if magnitude_distance > Self::FORCE_RADIUS as f32 {
+            return Self::zero();
+        }
+
+        // Newtons law of universal gravitation
+        // https://en.wikipedia.org/wiki/Newton%27s_law_of_universal_gravitation
+        //TODO Replace with other node "Gravitational force" value.
+        let g = 1.0;
+        let m1 = 1.0;
+        let m2 = 1.0;
+        let force = -g * (m1 * m2 / magnitude_distance.powf(2.0)); // Negate to push away
+        let force = force * distance;
+        Force(force)
+    }
+}
+
+#[cfg(test)]
+mod a_force {
+    use rstest::rstest;
+
+    use crate::node::Force;
+
+    #[rstest]
+    #[case((0.0, 0.0, 0.0), (1.0, 0.0, 1.0), (2.0, 3.0, 1.0), (3.0, 3.0, 2.0))]
+    fn can_be_summed(
+        #[case] force_1: (f32, f32, f32),
+        #[case] force_2: (f32, f32, f32),
+        #[case] force_3: (f32, f32, f32),
+        #[case] expected_sum: (f32, f32, f32),
+    ) {
+        let (x, y, z) = force_1;
+        let force_1 = Force(cgmath::Vector3 { x, y, z });
+        let (x, y, z) = force_2;
+        let force_2 = Force(cgmath::Vector3 { x, y, z });
+        let (x, y, z) = force_3;
+        let force_3 = Force(cgmath::Vector3 { x, y, z });
+        let (x, y, z) = expected_sum;
+        let expected_sum = Force(cgmath::Vector3 { x, y, z });
+        let iter = vec![force_1, force_2, force_3].into_iter();
+        assert_eq!(expected_sum, iter.sum());
+    }
+}

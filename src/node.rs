@@ -1,11 +1,12 @@
 use std::fmt;
 
 pub mod event;
-mod force;
+pub mod force;
 pub mod id;
 pub mod position;
 
 pub use event::{AddNodeEvent, Event, RemoveNodeEvent, SetTargetTpsEvent};
+pub use force::Force;
 pub use id::Id;
 pub use position::Position;
 
@@ -50,10 +51,10 @@ impl Node {
 
     pub fn step<F>(&mut self, mut node_force_function: F) -> ()
     where
-        F: FnMut(&mut Self) -> cgmath::Vector3<f32>,
+        F: FnMut(&mut Self) -> Force,
     {
         let internal_force = node_force_function(self);
-        self.incoming_force.0 += internal_force;
+        self.incoming_force += internal_force;
         self.update_position();
     }
 }
