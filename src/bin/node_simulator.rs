@@ -204,7 +204,7 @@ fn try_execute_add_command(args: ArgMatches) -> Option<node::AddNodeEvent> {
     let position = args.get_one::<String>("position");
     let position = match position {
         Some(pos_string) => {
-            let pos_string = pos_string.split(',');
+            let pos_string = pos_string.trim_matches('"').split(',');
             let positions: Vec<Result<i32, std::num::ParseIntError>> =
                 pos_string.map(|s| s.parse::<i32>()).collect();
             if positions.len() != 3 {
