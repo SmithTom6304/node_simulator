@@ -24,15 +24,29 @@ impl Force {
         Self(cgmath::Vector3::zero())
     }
 
-    pub fn calculate_incoming_force(node: &super::Node, others: &Vec<&super::Node>) -> Self {
+    pub fn calculate_incoming_force(
+        node: &super::Node,
+        others: &Vec<&super::Node>,
+        default_gravitational_constant: &f32,
+    ) -> Self {
         let resultant_force = others
             .iter()
-            .map(|other| Self::calculate_incoming_force_from_node(node, other))
+            .map(|other| {
+                Self::calculate_incoming_force_from_node(
+                    node,
+                    other,
+                    default_gravitational_constant,
+                )
+            })
             .sum();
         resultant_force
     }
 
-    fn calculate_incoming_force_from_node(node: &super::Node, other: &super::Node) -> Self {
+    fn calculate_incoming_force_from_node(
+        node: &super::Node,
+        other: &super::Node,
+        default_gravitational_constant: &f32,
+    ) -> Self {
         let distance = node.position.0 - other.position.0;
         let magnitude_distance = distance.magnitude();
         if magnitude_distance > Self::FORCE_RADIUS as f32 {
@@ -42,7 +56,7 @@ impl Force {
         // Newtons law of universal gravitation
         // https://en.wikipedia.org/wiki/Newton%27s_law_of_universal_gravitation
         //TODO Replace with other node "Gravitational force" value.
-        let g = 1.0;
+        let g = default_gravitational_constant;
         let m1 = node.mass;
         let m2 = other.mass;
         let r = magnitude_distance;

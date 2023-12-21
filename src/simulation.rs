@@ -6,6 +6,7 @@ use super::node;
 pub struct Simulation {
     pub nodes: Vec<node::Node>,
     target_tps: u32,
+    pub gravitational_constant: f32,
 }
 
 impl<'a> Simulation {
@@ -14,6 +15,7 @@ impl<'a> Simulation {
         Simulation {
             nodes,
             target_tps: 60,
+            gravitational_constant: 1.0,
         }
     }
 
@@ -31,7 +33,7 @@ impl<'a> Simulation {
         let others = nodes.clone();
         let node_force_function = |node: &mut node::Node| -> node::Force {
             let others = &others.iter().filter(|n| n != &node).collect();
-            node::Force::calculate_incoming_force(node, others)
+            node::Force::calculate_incoming_force(node, others, &self.gravitational_constant)
         };
 
         for node in self.nodes.iter_mut() {
