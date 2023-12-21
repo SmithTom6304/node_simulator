@@ -63,7 +63,7 @@ impl Force {
         let m2 = other.mass;
         let r = magnitude_distance;
         let force = -g * (m1 * m2 / r.powf(2.0)); // Negate to push away
-        let force = force * distance;
+        let force = force * distance.normalize();
         Force(force)
     }
 }
