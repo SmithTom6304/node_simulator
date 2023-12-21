@@ -205,8 +205,7 @@ fn try_execute_add_command(args: ArgMatches) -> Option<node::AddNodeEvent> {
     let position = match position {
         Some(pos_string) => {
             let pos_string = pos_string.trim_matches('"').split(',');
-            let positions: Vec<Result<i32, std::num::ParseIntError>> =
-                pos_string.map(|s| s.parse::<i32>()).collect();
+            let positions: Vec<Result<f32, _>> = pos_string.map(|s| s.parse::<f32>()).collect();
             if positions.len() != 3 {
                 println!("Position must have 3 values");
                 return None;
@@ -214,29 +213,25 @@ fn try_execute_add_command(args: ArgMatches) -> Option<node::AddNodeEvent> {
             let x = match &positions[0] {
                 Ok(number) => *number,
                 Err(_) => {
-                    println!("Position x must be an i32");
+                    println!("Position x must be an f32");
                     return None;
                 }
             };
             let y = match &positions[1] {
                 Ok(number) => *number,
                 Err(_) => {
-                    println!("Position y must be an i32");
+                    println!("Position y must be an f32");
                     return None;
                 }
             };
             let z = match &positions[2] {
                 Ok(number) => *number,
                 Err(_) => {
-                    println!("Position z must be an i32");
+                    println!("Position z must be an f32");
                     return None;
                 }
             };
-            node::Position(cgmath::Point3 {
-                x: x as f32,
-                y: y as f32,
-                z: z as f32,
-            })
+            node::Position(cgmath::Point3 { x, y, z })
         }
         None => node::Position::default(),
     };
