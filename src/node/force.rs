@@ -66,7 +66,7 @@ impl Force {
         other: &super::Node,
         default_gravitational_constant: &f32,
     ) -> Self {
-        let distance = node.position.0 - other.position.0;
+        let distance = -(node.position.0 - other.position.0);
         let magnitude_distance = distance.magnitude();
         if magnitude_distance > Self::FORCE_RADIUS as f32 {
             return Self::zero();
