@@ -1,7 +1,6 @@
 use self::scene_implementations::Scene;
 use crate::simulation::{self, Simulation};
 
-use super::node;
 use sdl2;
 
 use sdl2::event::Event;
@@ -238,16 +237,15 @@ mod a_graphics_interface {
 
     #[test]
     fn runs_until_a_close_event_is_received() {
-        let mut simulation = Simulation::new();
-        let (simulation_tx, simulation_rx) = mpsc::channel();
+        let _simulation = Simulation::new();
+        let (_simulation_tx, simulation_rx) = mpsc::channel();
         let (node_event_tx, node_event_rx) = mpsc::channel::<scene_event::SceneEvent>();
         let graphics_interface = GraphicsInterface::new(simulation_rx, false);
-        let (tx, rx) = mpsc::channel::<scene_event::SceneEvent>();
         thread::spawn(move || {
             thread::sleep(Duration::new(1, 0));
-            send_close_event(&tx);
+            send_close_event(&node_event_tx);
         });
-        graphics_interface.run(rx);
+        graphics_interface.run(node_event_rx);
     }
 
     // #[test]

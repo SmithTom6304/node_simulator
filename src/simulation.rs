@@ -1,5 +1,3 @@
-use cgmath::{EuclideanSpace, InnerSpace, MetricSpace, Zero};
-
 use super::node;
 
 #[derive(Clone)]

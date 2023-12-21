@@ -1,5 +1,3 @@
-use std::fmt;
-
 pub mod event;
 pub mod force;
 pub mod id;
