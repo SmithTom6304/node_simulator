@@ -22,7 +22,7 @@ impl<'a> Simulation {
     }
 
     pub fn remove_node(&mut self, id: node::Id) {
-        self.nodes.retain(|node| node.id() != &id)
+        self.nodes.retain(|node| node.id != id)
     }
 
     pub fn step(&mut self) {

@@ -327,9 +327,9 @@ impl super::Scene for State {
             for node in simulation.nodes.iter() {
                 node_instance_collection.add(instance::Instance {
                     position: cgmath::Vector3 {
-                        x: node.position().0.x,
-                        y: node.position().0.y,
-                        z: node.position().0.z,
+                        x: node.position.0.x,
+                        y: node.position.0.y,
+                        z: node.position.0.z,
                     },
                     rotation: cgmath::Quaternion::zero(),
                 })

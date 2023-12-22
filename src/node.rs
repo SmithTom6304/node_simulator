@@ -10,8 +10,8 @@ pub use position::Position;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Node {
-    id: Id,
-    position: Position,
+    pub id: Id,
+    pub position: Position,
     pub velocity: force::Force,
     pub mass: f32,
     pub gravitational_constant_override: Option<f32>,
@@ -26,18 +26,6 @@ impl Node {
             mass: 1.0,
             gravitational_constant_override: None,
         }
-    }
-
-    pub fn id(&self) -> &Id {
-        &self.id
-    }
-
-    pub fn position(&self) -> &Position {
-        &self.position
-    }
-
-    pub fn set_position(&mut self, position: Position) {
-        self.position = position
     }
 
     fn update_position(&mut self) {
