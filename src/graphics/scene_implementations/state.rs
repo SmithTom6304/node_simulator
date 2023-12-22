@@ -326,9 +326,8 @@ impl super::Scene for State {
 
         if let Some(simulation) = simulation {
             for node in simulation.nodes.iter() {
-                let node::Position(position) = node.position;
                 node_instance_collection.add(instance::Instance {
-                    position,
+                    position: node.position.into(),
                     rotation: cgmath::Quaternion::zero(),
                 })
             }

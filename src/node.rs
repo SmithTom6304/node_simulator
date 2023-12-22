@@ -58,8 +58,9 @@ mod tests {
                 z: 9.0,
             }),
         );
-        assert_eq!(5.0, node.position.0.x);
-        assert_eq!(7.0, node.position.0.y);
-        assert_eq!(9.0, node.position.0.z);
+        let (x, y, z) = node.position.into();
+        assert_eq!(5.0, x);
+        assert_eq!(7.0, y);
+        assert_eq!(9.0, z);
     }
 }
