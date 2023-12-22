@@ -135,7 +135,7 @@ mod a_force {
     use cgmath::Zero;
     use rstest::rstest;
 
-    use crate::node::{self, Force, Id, Node, Position};
+    use crate::node::{Force, Id, Node, Position};
 
     #[rstest]
     #[case((0.0, 0.0, 0.0), (1.0, 0.0, 1.0), (2.0, 3.0, 1.0), (3.0, 3.0, 2.0))]

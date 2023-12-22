@@ -89,9 +89,8 @@ impl Position {
 
 #[cfg(test)]
 mod a_position {
+    use crate::node::{Force, Position};
     use rstest::rstest;
-
-    use crate::node::Position;
 
     #[test]
     fn default_is_0_0_0() {
@@ -120,5 +119,112 @@ mod a_position {
         let (x, y, z) = expected_distance;
         let expected_distance = cgmath::Vector3::<f32>::new(x, y, z);
         assert_eq!(position.distance_to(&other), expected_distance);
+    }
+
+    #[test]
+    fn can_be_displayed() {
+        let position = Position(cgmath::Point3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        let expected_display_string = format!(
+            "x: {}, y: {}, z: {}",
+            position.0.x, position.0.y, position.0.z
+        );
+
+        assert_eq!(expected_display_string, position.to_string())
+    }
+
+    #[test]
+    fn can_create_from_tuple() {
+        let tuple = (1.0, 2.0, 3.0);
+        let expected_position = Position(cgmath::Point3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        assert_eq!(expected_position, Position::from(tuple))
+    }
+
+    #[test]
+    fn can_create_from_point() {
+        let point = cgmath::Point3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        };
+        let expected_position = Position(cgmath::Point3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        assert_eq!(expected_position, Position::from(point))
+    }
+
+    #[test]
+    fn can_turn_into_tuple() {
+        let position = Position(cgmath::Point3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        let expected_tuple = (1.0, 2.0, 3.0);
+        assert_eq!(expected_tuple, position.into())
+    }
+
+    #[test]
+    fn can_turn_into_point() {
+        let position = Position(cgmath::Point3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        let expected_point = cgmath::Point3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        };
+        assert_eq!(expected_point, position.into())
+    }
+
+    #[test]
+    fn can_add_a_vector() {
+        let position = Position(cgmath::Point3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        let vector_to_add = cgmath::Vector3 {
+            x: 1.0,
+            y: 3.0,
+            z: 5.0,
+        };
+        let expected_result = Position(cgmath::Point3 {
+            x: 2.0,
+            y: 5.0,
+            z: 8.0,
+        });
+        assert_eq!(expected_result, position + vector_to_add)
+    }
+
+    #[test]
+    fn can_add_a_force() {
+        let position = Position(cgmath::Point3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        let force_to_add = Force(cgmath::Vector3 {
+            x: 1.0,
+            y: 3.0,
+            z: 5.0,
+        });
+        let expected_result = Position(cgmath::Point3 {
+            x: 2.0,
+            y: 5.0,
+            z: 8.0,
+        });
+        assert_eq!(expected_result, position + force_to_add)
     }
 }
