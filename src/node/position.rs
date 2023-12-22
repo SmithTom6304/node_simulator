@@ -1,4 +1,9 @@
-use std::fmt;
+use std::{
+    fmt,
+    ops::{Add, AddAssign},
+};
+
+use cgmath::EuclideanSpace;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Position(pub cgmath::Point3<f32>);
@@ -32,6 +37,12 @@ impl From<cgmath::Point3<f32>> for Position {
     }
 }
 
+impl From<&cgmath::Point3<f32>> for Position {
+    fn from(value: &cgmath::Point3<f32>) -> Self {
+        Self(*value)
+    }
+}
+
 impl Into<(f32, f32, f32)> for Position {
     fn into(self) -> (f32, f32, f32) {
         self.0.into()
@@ -44,9 +55,40 @@ impl Into<cgmath::Point3<f32>> for Position {
     }
 }
 
+impl Into<cgmath::Point3<f32>> for &Position {
+    fn into(self) -> cgmath::Point3<f32> {
+        self.0.into()
+    }
+}
+
+impl Add<cgmath::Vector3<f32>> for Position {
+    type Output = Self;
+
+    fn add(self, rhs: cgmath::Vector3<f32>) -> Self::Output {
+        let point_3 = Into::<cgmath::Point3<f32>>::into(self) + rhs;
+        Self::from(point_3)
+    }
+}
+
+impl Add<super::Force> for Position {
+    type Output = Self;
+
+    fn add(self, rhs: super::Force) -> Self::Output {
+        let point_3 =
+            Into::<cgmath::Point3<f32>>::into(self) + Into::<cgmath::Vector3<f32>>::into(rhs);
+        Self::from(point_3)
+    }
+}
+
 impl Position {
     pub fn distance_to(&self, other: &Position) -> cgmath::Vector3<f32> {
         (self.0 - other.0).map(|n| n.abs())
+    }
+
+    pub fn displacement(&self, other: &Position) -> cgmath::Vector3<f32> {
+        let other_point = Into::<cgmath::Point3<f32>>::into(other);
+        let self_point = Into::<cgmath::Point3<f32>>::into(self);
+        other_point - self_point
     }
 }
 

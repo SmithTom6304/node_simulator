@@ -5,6 +5,8 @@ use std::{
 
 use cgmath::{self, InnerSpace, Zero};
 
+use super::Position;
+
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Force(pub cgmath::Vector3<f32>);
 
@@ -91,13 +93,13 @@ impl Force {
         other: &super::Node,
         default_gravitational_constant: &f32,
     ) -> Self {
-        let distance = -(node.position.0 - other.position.0);
-        let magnitude_distance = distance.magnitude();
+        let displacement = Position::displacement(&node.position, &other.position);
+        let magnitude_distance = displacement.magnitude();
         if magnitude_distance > Self::FORCE_RADIUS as f32 {
             return Self::zero();
         }
         // Avoid divide by zero errors
-        if distance == cgmath::Vector3::zero() {
+        if displacement == cgmath::Vector3::zero() {
             return Self::zero();
         }
 
@@ -111,7 +113,7 @@ impl Force {
         let m2 = other.mass;
         let r = magnitude_distance;
         let force = -g * (m1 * m2 / r.powf(2.0)); // Negate to push away
-        let force = force * distance.normalize();
+        let force = force * displacement.normalize();
         Force(force)
     }
 }
