@@ -48,7 +48,6 @@ fn run_simulation(
     simulation_tx: mpsc::Sender<Arc<Mutex<simulation::Simulation>>>,
     node_event_rx: mpsc::Receiver<node::Event>,
 ) {
-    //TODO Lowered for debugging purposes
     let get_target_duration = |target_tps| Duration::new(1, 0) / target_tps;
     let mut target_duration;
     let print_poor_performance = false;
