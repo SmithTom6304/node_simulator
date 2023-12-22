@@ -53,7 +53,7 @@ impl Node {
 }
 
 #[cfg(test)]
-mod tests {
+mod a_node {
     use super::*;
 
     #[test]
@@ -70,5 +70,50 @@ mod tests {
         assert_eq!(5.0, x);
         assert_eq!(7.0, y);
         assert_eq!(9.0, z);
+    }
+
+    #[test]
+    fn updates_its_velocity_every_frame_while_undergoing_a_force() {
+        let mut node = Node::new(Id(1), Position::default());
+        node.dampen_rate = 0.0; // Easier to compare with no dampening
+        let expected_velocity = Force(cgmath::Vector3 {
+            x: 1.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let node_force_function = |mut _node: &mut Node| expected_velocity.clone();
+
+        node.step(node_force_function);
+
+        assert_eq!(expected_velocity, node.velocity);
+
+        node.step(node_force_function);
+
+        assert_eq!(expected_velocity * 2.0, node.velocity);
+    }
+
+    #[test]
+    fn dampens_velocity_based_on_dampen_rate() {
+        let mut node = Node::new(Id(1), Position::default());
+        node.dampen_rate = 0.5;
+        let expected_velocity = Force(cgmath::Vector3 {
+            x: 0.5,
+            y: 0.0,
+            z: 0.0,
+        });
+        let node_force_function = |mut _node: &mut Node| {
+            Force(cgmath::Vector3 {
+                x: 1.0,
+                y: 0.0,
+                z: 0.0,
+            })
+        };
+        node.step(node_force_function);
+        assert_eq!(expected_velocity, node.velocity);
+
+        // Stop applying force to node
+        let node_force_function = |mut _node: &mut Node| Force::zero();
+        node.step(node_force_function);
+        assert_eq!(expected_velocity * 0.5, node.velocity);
     }
 }
