@@ -1,4 +1,5 @@
 use crate::graphics;
+use crate::node;
 use crate::simulation;
 use bytemuck;
 use graphics::camera;
@@ -325,12 +326,9 @@ impl super::Scene for State {
 
         if let Some(simulation) = simulation {
             for node in simulation.nodes.iter() {
+                let node::Position(position) = node.position;
                 node_instance_collection.add(instance::Instance {
-                    position: cgmath::Vector3 {
-                        x: node.position.0.x,
-                        y: node.position.0.y,
-                        z: node.position.0.z,
-                    },
+                    position,
                     rotation: cgmath::Quaternion::zero(),
                 })
             }
