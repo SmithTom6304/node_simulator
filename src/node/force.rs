@@ -135,7 +135,7 @@ mod a_force {
     use cgmath::Zero;
     use rstest::rstest;
 
-    use crate::node::{Force, Id, Node, Position};
+    use crate::node::{self, Force, Id, Node, Position};
 
     #[rstest]
     #[case((0.0, 0.0, 0.0), (1.0, 0.0, 1.0), (2.0, 3.0, 1.0), (3.0, 3.0, 2.0))]
@@ -241,5 +241,215 @@ mod a_force {
         assert_eq!(expected_force_on_node_b, force_on_node_b);
         let forces_are_opposite = force_on_node_a == -force_on_node_b;
         assert!(forces_are_opposite);
+    }
+
+    #[test]
+    fn can_be_multiplied() {
+        let force = Force(cgmath::Vector3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        let factor = 2.0;
+        let expected_force = Force(cgmath::Vector3 {
+            x: 2.0,
+            y: 4.0,
+            z: 6.0,
+        });
+        assert_eq!(expected_force, force * factor)
+    }
+
+    #[test]
+    fn can_create_from_tuple() {
+        let tuple = (1.0, 2.0, 3.0);
+        let expected_force = Force(cgmath::Vector3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        assert_eq!(expected_force, Force::from(tuple))
+    }
+
+    #[test]
+    fn can_create_from_vector() {
+        let vector = cgmath::Vector3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        };
+        let expected_force = Force(cgmath::Vector3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        assert_eq!(expected_force, Force::from(vector))
+    }
+
+    #[test]
+    fn can_turn_into_tuple() {
+        let force = Force(cgmath::Vector3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        let expected_tuple = (1.0, 2.0, 3.0);
+        assert_eq!(expected_tuple, force.into())
+    }
+
+    #[test]
+    fn can_turn_into_vector() {
+        let force = Force(cgmath::Vector3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        let expected_vector = cgmath::Vector3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        };
+        assert_eq!(expected_vector, force.into())
+    }
+
+    #[test]
+    fn incoming_force_is_zero_if_distance_greater_than_force_radius() {
+        let node_a = Node::new(
+            Id(1),
+            Position(cgmath::Point3 {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            }),
+        );
+        let node_b = Node::new(
+            Id(2),
+            Position(cgmath::Point3 {
+                x: Force::FORCE_RADIUS as f32 + 1.0,
+                y: 0.0,
+                z: 0.0,
+            }),
+        );
+        let gravitational_constant = 1.0;
+
+        let expected_force_on_node_a = Force(cgmath::Vector3 {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let force_on_node_a = super::Force::calculate_incoming_force(
+            &node_a,
+            &vec![&node_b],
+            &gravitational_constant,
+        );
+
+        let expected_force_on_node_b = Force(cgmath::Vector3 {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let force_on_node_b = super::Force::calculate_incoming_force(
+            &node_b,
+            &vec![&node_a],
+            &gravitational_constant,
+        );
+
+        assert_eq!(expected_force_on_node_a, force_on_node_a);
+        assert_eq!(expected_force_on_node_b, force_on_node_b);
+    }
+
+    #[test]
+    fn incoming_force_is_scaled_by_nodes_gravitational_constant() {
+        let mut node_a = Node::new(
+            Id(1),
+            Position(cgmath::Point3 {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            }),
+        );
+        node_a.gravitational_constant_override = Some(2.0);
+        let node_b = Node::new(
+            Id(2),
+            Position(cgmath::Point3 {
+                x: 1.0,
+                y: 0.0,
+                z: 0.0,
+            }),
+        );
+        let gravitational_constant = 1.0;
+
+        // Constant only affects other nodes
+        let expected_force_on_node_a = Force(cgmath::Vector3 {
+            x: -1.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let force_on_node_a = super::Force::calculate_incoming_force(
+            &node_a,
+            &vec![&node_b],
+            &gravitational_constant,
+        );
+
+        // Force is scaled by constant of other node
+        let expected_force_on_node_b = Force(cgmath::Vector3 {
+            x: 2.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let force_on_node_b = super::Force::calculate_incoming_force(
+            &node_b,
+            &vec![&node_a],
+            &gravitational_constant,
+        );
+
+        assert_eq!(expected_force_on_node_a, force_on_node_a);
+        assert_eq!(expected_force_on_node_b, force_on_node_b);
+    }
+
+    /// Avoids issues with divide by zero
+    #[test]
+    fn incoming_force_is_zero_if_distance_is_zero() {
+        let position = Position(cgmath::Point3 {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let node_a = Node::new(Id(1), position.clone());
+        let node_b = Node::new(Id(2), position.clone());
+        let gravitational_constant = 1.0;
+
+        let expected_force_on_node_a = Force(cgmath::Vector3 {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let force_on_node_a = super::Force::calculate_incoming_force(
+            &node_a,
+            &vec![&node_b],
+            &gravitational_constant,
+        );
+
+        let expected_force_on_node_b = Force(cgmath::Vector3 {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let force_on_node_b = super::Force::calculate_incoming_force(
+            &node_b,
+            &vec![&node_a],
+            &gravitational_constant,
+        );
+
+        assert_eq!(expected_force_on_node_a, force_on_node_a);
+        assert_eq!(expected_force_on_node_b, force_on_node_b);
+    }
+
+    #[rstest]
+    #[case((1.0, 0.0, 0.0), 1.0)]
+    #[case((-1.0, 0.0, 0.0), 1.0)]
+    #[case((3.0, 0.0, 4.0), 5.0)]
+    fn has_magnitude(#[case] force: (f32, f32, f32), #[case] expected_magnitude: f32) {
+        let force = Force::from(force);
+        assert_eq!(expected_magnitude, force.magnitude())
     }
 }
