@@ -15,6 +15,8 @@ pub struct Node {
     pub velocity: force::Force,
     pub mass: f32,
     pub gravitational_constant_override: Option<f32>,
+    /// Rate at which to dampen a nodes velocity. 0 is no dampening, 1 is instant dampening.
+    pub dampen_rate: f32,
 }
 
 impl Node {
@@ -25,13 +27,14 @@ impl Node {
             velocity: force::Force(cgmath::Vector3::<f32>::new(0.0, 0.0, 0.0)),
             mass: 1.0,
             gravitational_constant_override: None,
+            dampen_rate: 0.1,
         }
     }
 
     fn update_position(&mut self) {
         self.position = self.position + self.velocity;
         // Dampen
-        self.velocity.0 *= 0.9;
+        self.velocity.0 *= 1.0 - self.dampen_rate;
     }
 
     pub fn step<F>(&mut self, mut node_force_function: F) -> ()
