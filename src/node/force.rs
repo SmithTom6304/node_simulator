@@ -124,6 +124,10 @@ impl Force {
         let force = force * displacement.normalize();
         Force(force)
     }
+
+    pub fn magnitude(&self) -> f32 {
+        self.0.magnitude()
+    }
 }
 
 #[cfg(test)]
