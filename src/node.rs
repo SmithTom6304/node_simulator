@@ -34,7 +34,7 @@ impl Node {
     fn update_position(&mut self) {
         self.position = self.position + self.velocity;
         // Dampen
-        self.velocity.0 *= 1.0 - self.dampen_rate;
+        self.velocity = self.velocity * (1.0 - self.dampen_rate);
     }
 
     pub fn step<F>(&mut self, mut node_force_function: F) -> ()

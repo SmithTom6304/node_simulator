@@ -1,6 +1,6 @@
 use std::{
     iter::Sum,
-    ops::{Add, AddAssign, Neg},
+    ops::{Add, AddAssign, Mul, Neg},
 };
 
 use cgmath::{self, InnerSpace, Zero};
@@ -36,6 +36,14 @@ impl Neg for Force {
 
     fn neg(self) -> Self::Output {
         Self(-self.0)
+    }
+}
+
+impl Mul<f32> for Force {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self::from(self.0.map(|n| n * rhs))
     }
 }
 
