@@ -72,6 +72,12 @@ impl Into<cgmath::Vector3<f32>> for Force {
     }
 }
 
+impl PartialOrd for Force {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.magnitude().partial_cmp(&other.magnitude())
+    }
+}
+
 impl Force {
     const FORCE_RADIUS: u32 = 5;
     pub fn zero() -> Self {
@@ -451,5 +457,20 @@ mod a_force {
     fn has_magnitude(#[case] force: (f32, f32, f32), #[case] expected_magnitude: f32) {
         let force = Force::from(force);
         assert_eq!(expected_magnitude, force.magnitude())
+    }
+
+    #[test]
+    fn can_be_compared_based_on_magnitude() {
+        let lesser_force = Force(cgmath::Vector3 {
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+        });
+        let greater_force = Force(cgmath::Vector3 {
+            x: -2.0,
+            y: -1.0,
+            z: -1.0,
+        });
+        assert!(greater_force > lesser_force)
     }
 }
