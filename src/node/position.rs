@@ -19,6 +19,31 @@ impl Default for Position {
     }
 }
 
+impl From<(f32, f32, f32)> for Position {
+    fn from(value: (f32, f32, f32)) -> Self {
+        let (x, y, z) = value;
+        Self::from(cgmath::Point3 { x, y, z })
+    }
+}
+
+impl From<cgmath::Point3<f32>> for Position {
+    fn from(value: cgmath::Point3<f32>) -> Self {
+        Self(value)
+    }
+}
+
+impl Into<(f32, f32, f32)> for Position {
+    fn into(self) -> (f32, f32, f32) {
+        self.0.into()
+    }
+}
+
+impl Into<cgmath::Point3<f32>> for Position {
+    fn into(self) -> cgmath::Point3<f32> {
+        self.0.into()
+    }
+}
+
 impl Position {
     pub fn distance_to(&self, other: &Position) -> cgmath::Vector3<f32> {
         (self.0 - other.0).map(|n| n.abs())
