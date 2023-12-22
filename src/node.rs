@@ -20,6 +20,8 @@ pub struct Node {
 }
 
 impl Node {
+    const MIN_VELOCITY: f32 = 0.0001;
+
     pub fn new(id: Id, position: Position) -> Self {
         Node {
             id,
@@ -35,6 +37,9 @@ impl Node {
         self.position = self.position + self.velocity;
         // Dampen
         self.velocity = self.velocity * (1.0 - self.dampen_rate);
+        if self.velocity.magnitude() < Self::MIN_VELOCITY {
+            self.velocity = Force::zero();
+        }
     }
 
     pub fn step<F>(&mut self, mut node_force_function: F) -> ()
