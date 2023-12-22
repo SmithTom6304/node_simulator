@@ -37,6 +37,31 @@ impl Neg for Force {
     }
 }
 
+impl From<(f32, f32, f32)> for Force {
+    fn from(value: (f32, f32, f32)) -> Self {
+        let (x, y, z) = value;
+        Self::from(cgmath::Vector3 { x, y, z })
+    }
+}
+
+impl From<cgmath::Vector3<f32>> for Force {
+    fn from(value: cgmath::Vector3<f32>) -> Self {
+        Self(value)
+    }
+}
+
+impl Into<(f32, f32, f32)> for Force {
+    fn into(self) -> (f32, f32, f32) {
+        self.0.into()
+    }
+}
+
+impl Into<cgmath::Vector3<f32>> for Force {
+    fn into(self) -> cgmath::Vector3<f32> {
+        self.0.into()
+    }
+}
+
 impl Force {
     const FORCE_RADIUS: u32 = 5;
     pub fn zero() -> Self {
