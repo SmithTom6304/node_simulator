@@ -29,7 +29,7 @@ impl Node {
     }
 
     fn update_position(&mut self) {
-        self.position.0 += self.velocity.0;
+        self.position = self.position + self.velocity;
         // Dampen
         self.velocity.0 *= 0.9;
     }
