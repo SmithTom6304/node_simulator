@@ -15,9 +15,6 @@ pub struct Node {
     pub velocity: force::Force,
     pub mass: f32,
     pub gravitational_constant_override: Option<f32>,
-
-    //TODO Added for debugging purposes
-    toggle: bool,
 }
 
 impl Node {
@@ -28,7 +25,6 @@ impl Node {
             velocity: force::Force(cgmath::Vector3::<f32>::new(0.0, 0.0, 0.0)),
             mass: 1.0,
             gravitational_constant_override: None,
-            toggle: true,
         }
     }
 
