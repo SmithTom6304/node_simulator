@@ -1,5 +1,4 @@
 use crate::graphics;
-use crate::node;
 use crate::simulation;
 use bytemuck;
 use graphics::camera;

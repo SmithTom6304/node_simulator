@@ -1,9 +1,4 @@
-use std::{
-    fmt,
-    ops::{Add, AddAssign},
-};
-
-use cgmath::EuclideanSpace;
+use std::{fmt, ops::Add};
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Position(pub cgmath::Point3<f32>);
