@@ -33,17 +33,14 @@ impl Material {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> Result<Material, MaterialError> {
-        let texture = texture::load_texture(file_name, device, queue).await;
-
-        // TODO Less stupid way to do this
-        if texture.is_err() {
-            let error = texture.err().unwrap();
-            return Err(MaterialError {
-                message: error.to_string(),
-            });
-        }
-
-        let texture = texture.unwrap();
+        let texture = match texture::load_texture(file_name, device, queue).await {
+            Ok(texture) => texture,
+            Err(err) => {
+                return Err(MaterialError {
+                    message: err.to_string(),
+                })
+            }
+        };
 
         let bind_group_layout = texture::Texture::create_texture_bind_group_layout(device);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
