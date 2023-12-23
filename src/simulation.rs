@@ -13,7 +13,7 @@ impl<'a> Simulation {
         Simulation {
             nodes,
             target_tps: 60,
-            gravitational_constant: 1.0,
+            gravitational_constant: -1.0,
         }
     }
 

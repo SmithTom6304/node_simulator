@@ -126,7 +126,7 @@ impl Force {
         let m1 = node.mass;
         let m2 = other.mass;
         let r = magnitude_distance;
-        let force = -g * (m1 * m2 / r.powf(2.0)); // Negate to push away
+        let force = g * (m1 * m2 / r.powf(2.0));
         let force = force * displacement.normalize();
         Force(force)
     }
@@ -219,7 +219,7 @@ mod a_force {
                 z: 0.0,
             }),
         );
-        let gravitational_constant = 1.0;
+        let gravitational_constant = -1.0;
 
         let expected_force_on_node_a = Force(cgmath::Vector3 {
             x: -1.0,
@@ -373,7 +373,7 @@ mod a_force {
                 z: 0.0,
             }),
         );
-        node_a.gravitational_constant_override = Some(2.0);
+        node_a.gravitational_constant_override = Some(-2.0);
         let node_b = Node::new(
             Id(2),
             Position(cgmath::Point3 {
@@ -382,7 +382,7 @@ mod a_force {
                 z: 0.0,
             }),
         );
-        let gravitational_constant = 1.0;
+        let gravitational_constant = -1.0;
 
         // Constant only affects other nodes
         let expected_force_on_node_a = Force(cgmath::Vector3 {
