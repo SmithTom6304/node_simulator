@@ -17,6 +17,9 @@ pub struct Node {
     pub gravitational_constant_override: Option<f32>,
     /// Rate at which to dampen a nodes velocity. 0 is no dampening, 1 is instant dampening.
     pub dampen_rate: f32,
+    /// Stops the node from moving when undergoing a force. This node will still exert force on other
+    /// nodes - this can be disabled via the gravitational_constant_override
+    pub freeze: bool,
 }
 
 impl Node {
@@ -30,6 +33,7 @@ impl Node {
             mass: 1.0,
             gravitational_constant_override: None,
             dampen_rate: 0.1,
+            freeze: false,
         }
     }
 
@@ -46,7 +50,10 @@ impl Node {
     where
         F: FnMut(&mut Self) -> Force,
     {
-        let internal_force = node_force_function(self);
+        let internal_force = match self.freeze {
+            true => Force::zero(),
+            false => node_force_function(self),
+        };
         self.velocity += internal_force;
         self.update_position();
     }
@@ -115,5 +122,27 @@ mod a_node {
         let node_force_function = |mut _node: &mut Node| Force::zero();
         node.step(node_force_function);
         assert_eq!(expected_velocity * 0.5, node.velocity);
+    }
+
+    #[test]
+    fn does_not_move_if_frozen() {
+        let mut node = Node::new(Id(1), Position::default());
+        node.freeze = true;
+        let expected_position = Position::default();
+        let expected_velocity = Force(cgmath::Vector3 {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let node_force_function = |mut _node: &mut Node| {
+            Force(cgmath::Vector3 {
+                x: 1.0,
+                y: 0.0,
+                z: 0.0,
+            })
+        };
+        node.step(node_force_function);
+        assert_eq!(expected_velocity, node.velocity);
+        assert_eq!(expected_position, node.position);
     }
 }
