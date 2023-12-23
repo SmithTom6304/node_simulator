@@ -41,7 +41,8 @@ impl Node {
         self.position = self.position + self.velocity;
         // Dampen
         self.velocity = self.velocity * (1.0 - self.dampen_rate);
-        if self.velocity.magnitude() < Self::MIN_VELOCITY {
+        let velocity_magnitude = self.velocity.magnitude();
+        if 0.0 < velocity_magnitude && velocity_magnitude < Self::MIN_VELOCITY {
             self.velocity = Force::zero();
         }
     }
