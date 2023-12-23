@@ -113,4 +113,43 @@ mod a_simulation {
         assert_eq!(0, simulation.nodes.len());
         assert!(!simulation.nodes.contains(&node));
     }
+
+    #[test]
+    fn updates_nodes_each_step() {
+        let mut simulation = Simulation::new();
+        let id = node::Id(1);
+        let position_a = node::Position(cgmath::Point3 {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let node_a = node::Node::new(id, position_a.clone());
+
+        let id = node::Id(2);
+        let position_b = node::Position(cgmath::Point3 {
+            x: 1.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        let node_b = node::Node::new(id, position_b.clone());
+
+        simulation.add_node(node_a);
+        simulation.add_node(node_b);
+
+        simulation.step();
+
+        let node_a = simulation
+            .nodes
+            .iter()
+            .find(|node| node.id == node::Id(1))
+            .unwrap();
+        let node_b = simulation
+            .nodes
+            .iter()
+            .find(|node| node.id == node::Id(2))
+            .unwrap();
+
+        assert_ne!(position_a, node_a.position);
+        assert_ne!(position_b, node_b.position);
+    }
 }
