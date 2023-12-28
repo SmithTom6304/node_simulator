@@ -41,7 +41,7 @@ impl GraphicsInterface {
     ) -> GraphicsInterface {
         let context = sdl2::init().unwrap();
         let event = context.event().unwrap();
-        match event.register_custom_event::<scene_event::SceneEvent>() {
+        match event.register_custom_event::<scene_event::Event>() {
             Ok(_) => (),
             Err(err) => println!("{}", err),
         };
@@ -79,7 +79,7 @@ impl GraphicsInterface {
         ))
     }
 
-    pub fn run(mut self, rx: mpsc::Receiver<scene_event::SceneEvent>) {
+    pub fn run(mut self, rx: mpsc::Receiver<scene_event::Event>) {
         let mut event_pump = self.context.event_pump().unwrap();
         let target_duration = |target_fps| Duration::new(1, 0) / target_fps;
         let print_poor_performance = false;
@@ -100,7 +100,7 @@ impl GraphicsInterface {
                 let status = match event.is_user_event() {
                     true => self.handle_custom_event(
                         event
-                            .as_user_event_type::<scene_event::SceneEvent>()
+                            .as_user_event_type::<scene_event::Event>()
                             .expect("User event was not node event"),
                     ),
                     false => self.handle_event(event),
@@ -203,27 +203,19 @@ impl GraphicsInterface {
         }
     }
 
-    fn handle_custom_event(&mut self, event: scene_event::SceneEvent) -> EventStatus {
-        match event.close_event {
-            Some(_) => {
-                return EventStatus::Close;
-            }
-            None => (),
-        };
-        match event.toggle_scene_event {
-            Some(_) => {
+    fn handle_custom_event(&mut self, event: scene_event::Event) -> EventStatus {
+        match event {
+            scene_event::Event::Close(_close_event) => return EventStatus::Close,
+            scene_event::Event::ToggleScene(_toggle_event) => {
                 self.toggle_state();
-                return EventStatus::Handled;
             }
-            None => (),
+            scene_event::Event::SetTargetFps(target_fps_event) => {
+                match target_fps_event.target_fps {
+                    Some(target_fps) => self.set_target_fps(target_fps),
+                    None => println!("FPS - {}", self.target_fps),
+                }
+            }
         };
-        match event.set_target_fps_event {
-            Some(event) => match event.target_fps {
-                Some(target_fps) => self.set_target_fps(target_fps),
-                None => println!("FPS - {}", self.target_fps),
-            },
-            None => {}
-        }
         EventStatus::Handled
     }
 }
@@ -239,7 +231,7 @@ mod a_graphics_interface {
     fn runs_until_a_close_event_is_received() {
         let _simulation = Simulation::new();
         let (_simulation_tx, simulation_rx) = mpsc::channel();
-        let (node_event_tx, node_event_rx) = mpsc::channel::<scene_event::SceneEvent>();
+        let (node_event_tx, node_event_rx) = mpsc::channel::<scene_event::Event>();
         let graphics_interface = GraphicsInterface::new(simulation_rx, false);
         thread::spawn(move || {
             thread::sleep(Duration::new(1, 0));
@@ -300,15 +292,11 @@ mod a_graphics_interface {
     //     assert!(simulation.nodes.is_empty());
     // }
 
-    fn send_close_event(tx: &mpsc::Sender<scene_event::SceneEvent>) {
-        let close_event = scene_event::SceneEvent {
-            close_event: Some(CloseEvent {}),
-            ..Default::default()
-        };
-        send_event(tx, close_event);
+    fn send_close_event(tx: &mpsc::Sender<scene_event::Event>) {
+        send_event(tx, scene_event::Event::Close(CloseEvent {}));
     }
 
-    fn send_event(tx: &mpsc::Sender<scene_event::SceneEvent>, event: scene_event::SceneEvent) {
+    fn send_event(tx: &mpsc::Sender<scene_event::Event>, event: scene_event::Event) {
         _ = tx.send(event);
     }
 }

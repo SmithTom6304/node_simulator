@@ -4,6 +4,7 @@ use std::{io, thread};
 
 use clap::Parser;
 
+use node_simulator::graphics::scene_event::{CloseEvent, ToggleSceneEvent};
 use node_simulator::graphics::{self, scene_event, GraphicsInterface};
 use node_simulator::{node, simulation};
 
@@ -28,7 +29,7 @@ fn create_graphics_interface(
 fn run(_default_texture_path: Option<String>, create_display: bool) {
     let simulation = Arc::new(Mutex::new(simulation::Simulation::new()));
     let (simulation_tx, simulation_rx) = mpsc::channel::<Arc<Mutex<simulation::Simulation>>>();
-    let (scene_event_tx, scene_event_rx) = mpsc::channel::<scene_event::SceneEvent>();
+    let (scene_event_tx, scene_event_rx) = mpsc::channel::<scene_event::Event>();
     let (node_event_tx, node_event_rx) = mpsc::channel::<node::Event>();
 
     let graphics_interface = graphics::GraphicsInterface::new(simulation_rx, create_display);
@@ -82,7 +83,7 @@ pub fn run_simulation(
 }
 
 fn read_input(
-    scene_event_tx: mpsc::Sender<scene_event::SceneEvent>,
+    scene_event_tx: mpsc::Sender<scene_event::Event>,
     node_event_tx: mpsc::Sender<node::Event>,
 ) {
     loop {
@@ -114,7 +115,7 @@ fn read_input(
 
 fn execute_command(
     simulation_command: SimulationCommands,
-    scene_event_tx: &mpsc::Sender<scene_event::SceneEvent>,
+    scene_event_tx: &mpsc::Sender<scene_event::Event>,
     node_event_tx: &mpsc::Sender<node::Event>,
 ) {
     match &simulation_command.command {
@@ -135,15 +136,15 @@ fn execute_command(
             }
         },
         simulation_commands::Commands::ToggleScene => {
-            _ = scene_event_tx.send(scene_event::ToggleSceneEvent::new())
+            _ = scene_event_tx.send(scene_event::Event::ToggleScene(ToggleSceneEvent {}))
         }
         simulation_commands::Commands::Close => {
-            _ = scene_event_tx.send(scene_event::CloseEvent::new())
+            _ = scene_event_tx.send(scene_event::Event::Close(CloseEvent {}))
         }
         simulation_commands::Commands::Set(set_args) => match &set_args.command {
             simulation_commands::set_command::Commands::Node(node_args) => todo!(),
             simulation_commands::set_command::Commands::Fps(fps_args) => {
-                _ = scene_event_tx.send(scene_event::SceneEvent::from(
+                _ = scene_event_tx.send(scene_event::Event::SetTargetFps(
                     scene_event::SetTargetFpsEvent::from(fps_args),
                 ))
             }
