@@ -1,4 +1,4 @@
-use node_simulator::node::{self, event::set_node, Position};
+use node_simulator::node::{self, event::set_node};
 
 #[derive(clap::Args, Debug)]
 pub struct NodeArgs {

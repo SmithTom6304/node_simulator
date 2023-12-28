@@ -32,7 +32,7 @@ fn run(_default_texture_path: Option<String>, create_display: bool) {
     let (scene_event_tx, scene_event_rx) = mpsc::channel::<scene_event::Event>();
     let (node_event_tx, node_event_rx) = mpsc::channel::<node::Event>();
 
-    let graphics_interface = graphics::GraphicsInterface::new(simulation_rx, create_display);
+    let graphics_interface = create_graphics_interface(simulation_rx, create_display);
 
     thread::spawn(move || {
         let simulation = Arc::clone(&simulation);
