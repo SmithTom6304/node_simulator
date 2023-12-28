@@ -122,14 +122,16 @@ fn execute_command(
             simulation_commands::add_command::Commands::Node(node_args) => {
                 let add_event = node::AddNodeEvent::try_from(node_args);
                 match add_event {
-                    Ok(add_event) => _ = node_event_tx.send(node::Event::from(add_event)),
+                    Ok(add_event) => _ = node_event_tx.send(node::Event::AddNode(add_event)),
                     Err(err) => println!("{}", err),
                 }
             }
         },
         simulation_commands::Commands::Remove(args) => match &args.command {
             simulation_commands::remove_command::Commands::Node(node_args) => {
-                _ = node_event_tx.send(node::Event::from(node::RemoveNodeEvent::from(node_args)))
+                _ = node_event_tx.send(node::Event::from(node::Event::RemoveNode(
+                    node::RemoveNodeEvent::from(node_args),
+                )))
             }
         },
         simulation_commands::Commands::ToggleScene => {
@@ -146,7 +148,9 @@ fn execute_command(
                 ))
             }
             simulation_commands::set_command::Commands::Tps(tps_args) => {
-                _ = node_event_tx.send(node::Event::from(node::SetTargetTpsEvent::from(tps_args)))
+                _ = node_event_tx.send(node::Event::SetTargetTps(node::SetTargetTpsEvent::from(
+                    tps_args,
+                )))
             }
         },
     }

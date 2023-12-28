@@ -40,20 +40,17 @@ impl<'a> Simulation {
     }
 
     pub fn handle_event(&mut self, event: node::Event) {
-        match event.add_node_event {
-            Some(event) => self.add_node(event.node),
-            None => {}
-        };
-        match event.remove_node_event {
-            Some(event) => self.remove_node(event.node_id),
-            None => {}
-        };
-        match event.set_target_tps_event {
-            Some(event) => match event.target_tps {
-                Some(target_tps) => self.set_target_tps(target_tps),
-                None => println!("TPS - {}", self.target_tps),
-            },
-            None => {}
+        match event {
+            node::Event::AddNode(add_node_event) => self.add_node(add_node_event.node),
+            node::Event::RemoveNode(remove_node_event) => {
+                self.remove_node(remove_node_event.node_id)
+            }
+            node::Event::SetTargetTps(set_target_tps_event) => {
+                match set_target_tps_event.target_tps {
+                    Some(target_tps) => self.set_target_tps(target_tps),
+                    None => println!("TPS - {}", self.target_tps),
+                }
+            }
         }
     }
 
