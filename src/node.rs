@@ -3,7 +3,9 @@ pub mod force;
 pub mod id;
 pub mod position;
 
-pub use event::{AddNodeEvent, Event, RemoveNodeEvent, SetTargetTpsEvent};
+pub use event::{
+    add_node::AddNodeEvent, remove_node::RemoveNodeEvent, set_target_tps::SetTargetTpsEvent, Event,
+};
 pub use force::Force;
 pub use id::Id;
 pub use position::Position;
