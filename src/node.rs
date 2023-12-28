@@ -40,7 +40,10 @@ impl Node {
     }
 
     fn update_position(&mut self) {
-        self.position = self.position + self.velocity;
+        self.position = match self.freeze {
+            true => self.position,
+            false => self.position + self.velocity,
+        };
         // Dampen
         self.velocity = self.velocity * (1.0 - self.dampen_rate);
         let velocity_magnitude = self.velocity.magnitude();
@@ -53,10 +56,7 @@ impl Node {
     where
         F: FnMut(&mut Self) -> Force,
     {
-        let internal_force = match self.freeze {
-            true => Force::zero(),
-            false => node_force_function(self),
-        };
+        let internal_force = node_force_function(self);
         self.velocity += internal_force;
         self.update_position();
     }
@@ -132,11 +132,6 @@ mod a_node {
         let mut node = Node::new(Id(1), Position::default());
         node.freeze = true;
         let expected_position = Position::default();
-        let expected_velocity = Force(cgmath::Vector3 {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-        });
         let node_force_function = |mut _node: &mut Node| {
             Force(cgmath::Vector3 {
                 x: 1.0,
@@ -145,7 +140,13 @@ mod a_node {
             })
         };
         node.step(node_force_function);
-        assert_eq!(expected_velocity, node.velocity);
-        assert_eq!(expected_position, node.position);
+        assert!(
+            node.velocity.magnitude() > 0.0,
+            "Node velocity is still updated..."
+        );
+        assert!(
+            expected_position == node.position,
+            "...but its position is not!"
+        );
     }
 }
