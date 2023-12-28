@@ -1,6 +1,7 @@
 pub mod add_command;
 pub mod fps_args;
 pub mod remove_command;
+pub mod set_command;
 pub mod tps_args;
 
 #[derive(clap::Parser, Debug)]
@@ -14,6 +15,7 @@ pub struct SimulationCommands {
 pub enum Commands {
     Add(add_command::AddCommand),
     Remove(remove_command::RemoveCommand),
+    Set(set_command::SetCommand),
     ToggleScene,
     Close,
     Tps(tps_args::TpsArgs),

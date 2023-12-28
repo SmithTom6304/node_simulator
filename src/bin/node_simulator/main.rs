@@ -146,5 +146,8 @@ fn execute_command(
                 scene_event::SetTargetFpsEvent::from(fps_args),
             ))
         }
+        simulation_commands::Commands::Set(set_args) => match &set_args.command {
+            simulation_commands::set_command::Commands::Node(node_args) => todo!(),
+        },
     }
 }
