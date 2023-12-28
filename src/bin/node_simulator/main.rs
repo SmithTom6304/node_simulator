@@ -138,16 +138,16 @@ fn execute_command(
         simulation_commands::Commands::Close => {
             _ = scene_event_tx.send(scene_event::CloseEvent::new())
         }
-        simulation_commands::Commands::Tps(tps_args) => {
-            _ = node_event_tx.send(node::Event::from(node::SetTargetTpsEvent::from(tps_args)))
-        }
-        simulation_commands::Commands::Fps(fps_args) => {
-            _ = scene_event_tx.send(scene_event::SceneEvent::from(
-                scene_event::SetTargetFpsEvent::from(fps_args),
-            ))
-        }
         simulation_commands::Commands::Set(set_args) => match &set_args.command {
             simulation_commands::set_command::Commands::Node(node_args) => todo!(),
+            simulation_commands::set_command::Commands::Fps(fps_args) => {
+                _ = scene_event_tx.send(scene_event::SceneEvent::from(
+                    scene_event::SetTargetFpsEvent::from(fps_args),
+                ))
+            }
+            simulation_commands::set_command::Commands::Tps(tps_args) => {
+                _ = node_event_tx.send(node::Event::from(node::SetTargetTpsEvent::from(tps_args)))
+            }
         },
     }
 }

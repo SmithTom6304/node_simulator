@@ -42,6 +42,7 @@ impl From<ToggleSceneEvent> for SceneEvent {
     }
 }
 
+#[derive(Clone)]
 pub struct SetTargetFpsEvent {
     pub target_fps: Option<u32>,
 }
@@ -56,7 +57,7 @@ impl SetTargetFpsEvent {
 impl From<SetTargetFpsEvent> for SceneEvent {
     fn from(value: SetTargetFpsEvent) -> Self {
         Self {
-            set_target_fps_event: Some(value),
+            set_target_fps_event: Some(value.clone()),
             ..Default::default()
         }
     }
