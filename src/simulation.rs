@@ -51,6 +51,51 @@ impl<'a> Simulation {
                     None => println!("TPS - {}", self.target_tps),
                 }
             }
+            node::Event::SetNode(set_node_event) => {
+                let node: &mut node::Node = match self
+                    .nodes
+                    .iter_mut()
+                    .find(|node| node.id == set_node_event.id)
+                {
+                    Some(node) => node,
+                    None => {
+                        println!(
+                            "No node with id {} was found",
+                            set_node_event.id.to_string()
+                        );
+                        return;
+                    }
+                };
+
+                match set_node_event.position {
+                    Some(position) => node.position = position,
+                    None => {}
+                };
+                match set_node_event.velocity {
+                    Some(velocity) => node.velocity = velocity,
+                    None => {}
+                };
+                match set_node_event.mass {
+                    Some(mass) => node.mass = mass,
+                    None => {}
+                };
+                match set_node_event.gravitational_constant_override {
+                    Some(g) => node.gravitational_constant_override = Some(g),
+                    None => {}
+                };
+                match set_node_event.dampen_rate {
+                    Some(dampen_rate) => node.dampen_rate = dampen_rate,
+                    None => {}
+                };
+                match set_node_event.dampen_rate {
+                    Some(dampen_rate) => node.dampen_rate = dampen_rate,
+                    None => {}
+                };
+                match set_node_event.freeze {
+                    Some(freeze) => node.freeze = freeze,
+                    None => {}
+                };
+            }
         }
     }
 

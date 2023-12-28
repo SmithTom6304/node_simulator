@@ -60,6 +60,37 @@ impl From<cgmath::Vector3<f32>> for Force {
     }
 }
 
+impl TryFrom<String> for Force {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let force_string = value.trim_matches('"').split(',');
+        let positions: Vec<Result<f32, _>> = force_string.map(|s| s.parse::<f32>()).collect();
+        if positions.len() != 3 {
+            return Err("Force must have 3 values".to_string());
+        }
+        let x = match &positions[0] {
+            Ok(number) => *number,
+            Err(_) => {
+                return Err("Force vector x must be an f32".to_string());
+            }
+        };
+        let y = match &positions[1] {
+            Ok(number) => *number,
+            Err(_) => {
+                return Err("Force vector y must be an f32".to_string());
+            }
+        };
+        let z = match &positions[2] {
+            Ok(number) => *number,
+            Err(_) => {
+                return Err("Force vector z must be an f32".to_string());
+            }
+        };
+        Ok(Self(cgmath::Vector3 { x, y, z }))
+    }
+}
+
 impl Into<(f32, f32, f32)> for Force {
     fn into(self) -> (f32, f32, f32) {
         self.0.into()

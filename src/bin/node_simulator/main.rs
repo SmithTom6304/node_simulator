@@ -142,7 +142,16 @@ fn execute_command(
             _ = scene_event_tx.send(scene_event::Event::Close(CloseEvent {}))
         }
         simulation_commands::Commands::Set(set_args) => match &set_args.command {
-            simulation_commands::set_command::Commands::Node(node_args) => todo!(),
+            simulation_commands::set_command::Commands::Node(node_args) => {
+                let event = match node::event::set_node::SetNodeEvent::try_from(node_args) {
+                    Ok(args) => args,
+                    Err(err) => {
+                        println!("{}", err);
+                        return;
+                    }
+                };
+                _ = node_event_tx.send(node::Event::SetNode(event))
+            }
             simulation_commands::set_command::Commands::Fps(fps_args) => {
                 _ = scene_event_tx.send(scene_event::Event::SetTargetFps(
                     scene_event::SetTargetFpsEvent::from(fps_args),

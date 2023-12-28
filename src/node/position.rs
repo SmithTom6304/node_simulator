@@ -38,6 +38,37 @@ impl From<&cgmath::Point3<f32>> for Position {
     }
 }
 
+impl TryFrom<String> for Position {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let pos_string = value.trim_matches('"').split(',');
+        let positions: Vec<Result<f32, _>> = pos_string.map(|s| s.parse::<f32>()).collect();
+        if positions.len() != 3 {
+            return Err("Position must have 3 values".to_string());
+        }
+        let x = match &positions[0] {
+            Ok(number) => *number,
+            Err(_) => {
+                return Err("Position x must be an f32".to_string());
+            }
+        };
+        let y = match &positions[1] {
+            Ok(number) => *number,
+            Err(_) => {
+                return Err("Position y must be an f32".to_string());
+            }
+        };
+        let z = match &positions[2] {
+            Ok(number) => *number,
+            Err(_) => {
+                return Err("Position z must be an f32".to_string());
+            }
+        };
+        Ok(Self(cgmath::Point3 { x, y, z }))
+    }
+}
+
 impl Into<(f32, f32, f32)> for Position {
     fn into(self) -> (f32, f32, f32) {
         self.0.into()
