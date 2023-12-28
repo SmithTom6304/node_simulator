@@ -57,7 +57,7 @@ impl Node {
         F: FnMut(&mut Self) -> Force,
     {
         let internal_force = node_force_function(self);
-        self.velocity += internal_force;
+        self.velocity += internal_force * (1.0 / self.mass);
         self.update_position();
     }
 }
