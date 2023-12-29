@@ -20,6 +20,15 @@ impl AddNodeEvent {
     }
 }
 
+impl From<AddNodeEvent> for Event {
+    fn from(value: AddNodeEvent) -> Self {
+        Event {
+            add_node_event: Some(value),
+            ..Default::default()
+        }
+    }
+}
+
 pub struct RemoveNodeEvent {
     pub node_id: Id,
 }
@@ -33,6 +42,15 @@ impl RemoveNodeEvent {
     }
 }
 
+impl From<RemoveNodeEvent> for Event {
+    fn from(value: RemoveNodeEvent) -> Self {
+        Event {
+            remove_node_event: Some(value),
+            ..Default::default()
+        }
+    }
+}
+
 pub struct SetTargetTpsEvent {
     pub target_tps: Option<u32>,
 }
@@ -41,6 +59,15 @@ impl SetTargetTpsEvent {
     pub fn new(target_tps: Option<u32>) -> Event {
         Event {
             set_target_tps_event: Some(SetTargetTpsEvent { target_tps }),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<SetTargetTpsEvent> for Event {
+    fn from(value: SetTargetTpsEvent) -> Self {
+        Event {
+            set_target_tps_event: Some(value),
             ..Default::default()
         }
     }
