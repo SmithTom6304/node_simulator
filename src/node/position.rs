@@ -43,7 +43,7 @@ impl TryFrom<String> for Position {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let pos_string = value.trim_matches('"').split(',');
-        let positions: Vec<Result<f32, _>> = pos_string.map(|s| s.parse::<f32>()).collect();
+        let positions: Vec<Result<f32, _>> = pos_string.map(|s| s.trim().parse::<f32>()).collect();
         if positions.len() != 3 {
             return Err("Position must have 3 values".to_string());
         }
