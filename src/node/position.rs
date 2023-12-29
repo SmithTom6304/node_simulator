@@ -194,6 +194,21 @@ mod a_position {
     }
 
     #[test]
+    fn can_create_from_point_ref() {
+        let point = &cgmath::Point3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        };
+        let expected_position = Position(cgmath::Point3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        assert_eq!(expected_position, Position::from(point))
+    }
+
+    #[test]
     fn can_turn_into_tuple() {
         let position = Position(cgmath::Point3 {
             x: 1.0,
@@ -257,5 +272,43 @@ mod a_position {
             z: 8.0,
         });
         assert_eq!(expected_result, position + force_to_add)
+    }
+
+    #[rstest]
+    #[case("1.0,2.0,3.0", Position(cgmath::Point3 { x: 1.0, y: 2.0, z: 3.0 }))]
+    #[case("1,2,3", Position(cgmath::Point3 { x: 1.0, y: 2.0, z: 3.0 }))]
+    #[case("-1.0,2.0,3.0", Position(cgmath::Point3 { x: -1.0, y: 2.0, z: 3.0 }))]
+    #[case("\"1.0,2.0,3.0\"", Position(cgmath::Point3 { x: 1.0, y: 2.0, z: 3.0 }))]
+    #[case("\"-1.0,2.0,3.0\"", Position(cgmath::Point3 { x: -1.0, y: 2.0, z: 3.0 }))]
+    #[case("\"1.0, 2.0, 3.0\"", Position(cgmath::Point3 { x: 1.0, y: 2.0, z: 3.0 }))]
+    #[case("\"-1.0, 2.0, 3.0\"", Position(cgmath::Point3 { x: -1.0, y: 2.0, z: 3.0 }))]
+    fn can_be_created_from_a_valid_string(
+        #[case] value: String,
+        #[case] expected_position: Position,
+    ) {
+        let position = match Position::try_from(value.clone()) {
+            Ok(pos) => pos,
+            Err(err) => panic!("Failed converting string {} to Position - {}", value, err),
+        };
+        assert_eq!(expected_position, position)
+    }
+
+    #[rstest]
+    #[case("1.0,2.0", "Position must have 3 values")]
+    #[case("x,2.0,3.0", "Position x must be an f32")]
+    #[case("1.0,y,3.0", "Position y must be an f32")]
+    #[case("1.0,2.0,z", "Position z must be an f32")]
+    fn cant_be_created_from_an_invalid_string(
+        #[case] value: String,
+        #[case] expected_error_message: String,
+    ) {
+        let error_message = match Position::try_from(value.clone()) {
+            Ok(pos) => panic!(
+                "Unexpectedly succeeded converting string {} to Position {}",
+                value, pos
+            ),
+            Err(err) => err,
+        };
+        assert_eq!(expected_error_message, error_message)
     }
 }
