@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     iter::Sum,
     ops::{Add, AddAssign, Mul, Neg},
 };
@@ -9,6 +10,12 @@ use super::Position;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Force(pub cgmath::Vector3<f32>);
+
+impl fmt::Display for Force {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "x: {}, y: {}, z: {}", self.0.x, self.0.y, self.0.z)
+    }
+}
 
 impl Sum for Force {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
