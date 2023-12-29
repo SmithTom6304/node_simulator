@@ -65,7 +65,8 @@ impl TryFrom<String> for Force {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let force_string = value.trim_matches('"').split(',');
-        let positions: Vec<Result<f32, _>> = force_string.map(|s| s.parse::<f32>()).collect();
+        let positions: Vec<Result<f32, _>> =
+            force_string.map(|s| s.trim().parse::<f32>()).collect();
         if positions.len() != 3 {
             return Err("Force must have 3 values".to_string());
         }
