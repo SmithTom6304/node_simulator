@@ -182,6 +182,19 @@ mod a_force {
 
     use crate::node::{Force, Id, Node, Position};
 
+    #[test]
+    fn can_be_displayed() {
+        let force = Force(cgmath::Vector3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        });
+        let expected_display_string =
+            format!("x: {}, y: {}, z: {}", force.0.x, force.0.y, force.0.z);
+
+        assert_eq!(expected_display_string, force.to_string())
+    }
+
     #[rstest]
     #[case((0.0, 0.0, 0.0), (1.0, 0.0, 1.0), (2.0, 3.0, 1.0), (3.0, 3.0, 2.0))]
     fn can_be_summed(
@@ -511,5 +524,40 @@ mod a_force {
             z: -1.0,
         });
         assert!(greater_force > lesser_force)
+    }
+
+    #[rstest]
+    #[case("1.0,2.0,3.0", Force(cgmath::Vector3 { x: 1.0, y: 2.0, z: 3.0 }))]
+    #[case("1,2,3", Force(cgmath::Vector3 { x: 1.0, y: 2.0, z: 3.0 }))]
+    #[case("-1.0,2.0,3.0", Force(cgmath::Vector3 { x: -1.0, y: 2.0, z: 3.0 }))]
+    #[case("\"1.0,2.0,3.0\"", Force(cgmath::Vector3 { x: 1.0, y: 2.0, z: 3.0 }))]
+    #[case("\"-1.0,2.0,3.0\"", Force(cgmath::Vector3 { x: -1.0, y: 2.0, z: 3.0 }))]
+    #[case("\"1.0, 2.0, 3.0\"", Force(cgmath::Vector3 { x: 1.0, y: 2.0, z: 3.0 }))]
+    #[case("\"-1.0, 2.0, 3.0\"", Force(cgmath::Vector3 { x: -1.0, y: 2.0, z: 3.0 }))]
+    fn can_be_created_from_a_valid_string(#[case] value: String, #[case] expected_force: Force) {
+        let force = match Force::try_from(value.clone()) {
+            Ok(force) => force,
+            Err(err) => panic!("Failed converting string {} to Force - {}", value, err),
+        };
+        assert_eq!(expected_force, force)
+    }
+
+    #[rstest]
+    #[case("1.0,2.0", "Force must have 3 values")]
+    #[case("x,2.0,3.0", "Force vector x must be an f32")]
+    #[case("1.0,y,3.0", "Force vector y must be an f32")]
+    #[case("1.0,2.0,z", "Force vector z must be an f32")]
+    fn cant_be_created_from_an_invalid_string(
+        #[case] value: String,
+        #[case] expected_error_message: String,
+    ) {
+        let error_message = match Force::try_from(value.clone()) {
+            Ok(force) => panic!(
+                "Unexpectedly succeeded converting string {} to Force {}",
+                value, force
+            ),
+            Err(err) => err,
+        };
+        assert_eq!(expected_error_message, error_message)
     }
 }
