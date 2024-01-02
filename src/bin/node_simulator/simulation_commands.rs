@@ -1,4 +1,5 @@
 pub mod add_command;
+pub mod get_command;
 pub mod remove_command;
 pub mod set_command;
 
@@ -14,6 +15,7 @@ pub enum Commands {
     Add(add_command::AddCommand),
     Remove(remove_command::RemoveCommand),
     Set(set_command::SetCommand),
+    Get(get_command::GetCommand),
     ToggleScene,
     Close,
 }

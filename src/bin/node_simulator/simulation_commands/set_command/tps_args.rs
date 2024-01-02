@@ -2,7 +2,7 @@ use node_simulator::node;
 
 #[derive(clap::Args, Debug)]
 pub struct TpsArgs {
-    pub target: Option<u32>,
+    pub target: u32,
 }
 
 impl From<&TpsArgs> for node::SetTargetTpsEvent {

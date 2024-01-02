@@ -1,3 +1,3 @@
 pub struct SetTargetTpsEvent {
-    pub target_tps: Option<u32>,
+    pub target_tps: u32,
 }

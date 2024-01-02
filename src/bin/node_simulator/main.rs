@@ -163,5 +163,18 @@ fn execute_command(
                 )))
             }
         },
+        simulation_commands::Commands::Get(get_args) => match &get_args.command {
+            simulation_commands::get_command::Commands::Node(get_node_event) => {
+                _ = node_event_tx.send(node::Event::Get(node::event::get::GetEvent::Node(
+                    get_node_event.into(),
+                )))
+            }
+            simulation_commands::get_command::Commands::Tps => {
+                _ = node_event_tx.send(node::Event::Get(node::event::get::GetEvent::Tps))
+            }
+            simulation_commands::get_command::Commands::Fps => {
+                _ = scene_event_tx.send(scene_event::Event::GetFps)
+            }
+        },
     }
 }

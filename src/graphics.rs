@@ -209,12 +209,8 @@ impl GraphicsInterface {
             scene_event::Event::ToggleScene(_toggle_event) => {
                 self.toggle_state();
             }
-            scene_event::Event::SetTargetFps(target_fps_event) => {
-                match target_fps_event.target_fps {
-                    Some(target_fps) => self.set_target_fps(target_fps),
-                    None => println!("FPS - {}", self.target_fps),
-                }
-            }
+            scene_event::Event::SetTargetFps(event) => self.set_target_fps(event.target_fps),
+            scene_event::Event::GetFps => println!("fps: {}", self.target_fps),
         };
         EventStatus::Handled
     }

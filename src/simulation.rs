@@ -46,10 +46,7 @@ impl<'a> Simulation {
                 self.remove_node(remove_node_event.node_id)
             }
             node::Event::SetTargetTps(set_target_tps_event) => {
-                match set_target_tps_event.target_tps {
-                    Some(target_tps) => self.set_target_tps(target_tps),
-                    None => println!("TPS - {}", self.target_tps),
-                }
+                self.set_target_tps(set_target_tps_event.target_tps)
             }
             node::Event::SetNode(set_node_event) => {
                 let node: &mut node::Node = match self
@@ -96,6 +93,7 @@ impl<'a> Simulation {
                     None => {}
                 };
             }
+            node::Event::Get(get_event) => get_event.handle(self),
         }
     }
 
