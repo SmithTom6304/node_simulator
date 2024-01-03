@@ -52,6 +52,7 @@ pub fn run_simulation(
     node_event_rx: mpsc::Receiver<node::Event>,
 ) {
     let get_target_duration = |target_tps| Duration::new(1, 0) / target_tps;
+    let target_duration_if_paused = Duration::new(1, 0);
     let mut target_duration;
     let print_poor_performance = false;
 
@@ -60,12 +61,20 @@ pub fn run_simulation(
         let start_time = time::Instant::now();
         {
             let mut sim = simulation.lock().unwrap();
-            target_duration = get_target_duration(sim.target_tps());
+            let target_tps = sim.target_tps();
+            let sim_is_paused = target_tps == 0;
+            target_duration = match sim_is_paused {
+                true => target_duration_if_paused,
+                false => get_target_duration(target_tps),
+            };
             match event {
                 Ok(event) => sim.handle_event(event),
                 Err(_) => {}
             }
-            sim.step();
+
+            if false == sim_is_paused {
+                sim.step();
+            }
         }
 
         let _ = simulation_tx.send(simulation.clone());
