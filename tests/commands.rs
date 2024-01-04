@@ -1,6 +1,6 @@
 mod common;
 
-const EXPECTED_HELP_COMMAND_OUTPUT: &str = r"Running node_simulator...
+const EXPECTED_HELP_COMMAND_OUTPUT: &str = r#"Running node_simulator...
 Commands:
   add           
   remove        
@@ -8,9 +8,10 @@ Commands:
   get           
   toggle-scene  
   close         
+  step          
   help          Print this message or the help of the given subcommand(s)
 
-";
+"#;
 
 const EXPECTED_ADD_NODE_COMMAND_OUTPUT: &str = r#"Running node_simulator...
 Node 1:

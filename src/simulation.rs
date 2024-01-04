@@ -94,6 +94,11 @@ impl<'a> Simulation {
                 };
             }
             node::Event::Get(get_event) => get_event.handle(self),
+            node::Event::Step(step_event) => {
+                for _ in 0..step_event.steps {
+                    self.step()
+                }
+            }
         }
     }
 
@@ -191,5 +196,44 @@ mod a_simulation {
 
         assert_ne!(position_a, node_a.position);
         assert_ne!(position_b, node_b.position);
+    }
+
+    #[test]
+    pub fn can_handle_step_event() {
+        let mut simulation = Simulation::new();
+        simulation.target_tps = 0;
+        let node_a = node::Node {
+            id: node::Id(1),
+            position: node::Position::from((0.0, 0.0, 0.0)),
+            velocity: node::Force::from((1.0, 0.0, 0.0)),
+            mass: 1.0,
+            gravitational_constant_override: None,
+            dampen_rate: 0.0,
+            freeze: false,
+        };
+
+        simulation.add_node(node_a);
+
+        {
+            let node = simulation
+                .nodes
+                .iter()
+                .find(|node| node.id == node::Id(1))
+                .unwrap();
+            assert_eq!(node::Position::from((0.0, 0.0, 0.0)), node.position);
+        }
+
+        let step_event = node::Event::Step(node::event::step::StepEvent { steps: 1 });
+
+        simulation.handle_event(step_event);
+
+        {
+            let node = simulation
+                .nodes
+                .iter()
+                .find(|node| node.id == node::Id(1))
+                .unwrap();
+            assert_ne!(node::Position::from((0.0, 0.0, 0.0)), node.position)
+        };
     }
 }
