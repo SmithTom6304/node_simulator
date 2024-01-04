@@ -1,5 +1,0 @@
-[no_wgpu_coverage]
-features = ""
-
-[wgpu_coverage]
-features = "wgpu"
