@@ -185,5 +185,8 @@ fn execute_command(
                 _ = scene_event_tx.send(scene_event::Event::GetFps)
             }
         },
+        simulation_commands::Commands::Step(step_args) => {
+            _ = node_event_tx.send(node::Event::Step(step_args.into()))
+        }
     }
 }
