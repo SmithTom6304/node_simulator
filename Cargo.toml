@@ -39,5 +39,6 @@ glob = "0.3"
 [dev-dependencies]
 utils = {path = "utils" }
 rstest = "0.18"
+test_bin = "0.4"
 
 
