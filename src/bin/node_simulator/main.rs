@@ -188,5 +188,6 @@ fn execute_command(
         simulation_commands::Commands::Step(step_args) => {
             _ = node_event_tx.send(node::Event::Step(step_args.into()))
         }
+        simulation_commands::Commands::Script(script_args) => todo!(),
     }
 }

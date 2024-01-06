@@ -1,6 +1,7 @@
 pub mod add_command;
 pub mod get_command;
 pub mod remove_command;
+pub mod script_command;
 pub mod set_command;
 pub mod step_command;
 
@@ -20,6 +21,7 @@ pub enum Commands {
     ToggleScene,
     Close,
     Step(step_command::StepCommand),
+    Script(script_command::ScriptCommand),
 }
 
 impl SimulationCommands {
