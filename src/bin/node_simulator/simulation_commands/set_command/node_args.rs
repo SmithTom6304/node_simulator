@@ -10,7 +10,7 @@ pub struct NodeArgs {
     velocity: Option<String>,
     #[arg(long)]
     mass: Option<f32>,
-    #[arg(long)]
+    #[arg(long, allow_hyphen_values = true)]
     gravitational_constant_override: Option<f32>,
     #[arg(long)]
     dampen_rate: Option<f32>,
