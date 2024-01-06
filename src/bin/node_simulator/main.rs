@@ -10,6 +10,7 @@ use node_simulator::graphics::{self, scene_event, GraphicsInterface};
 use node_simulator::{node, simulation};
 
 use args::CLIArgs;
+use simulation_commands::script_command::ScriptCommand;
 use simulation_commands::SimulationCommand;
 
 mod args;
@@ -179,6 +180,17 @@ fn execute_command(
         simulation_commands::Command::Step(step_args) => {
             _ = node_event_tx.send(node::Event::Step(step_args.into()))
         }
-        simulation_commands::Command::Script(script_args) => todo!(),
+        simulation_commands::Command::Script(script_args) => {
+            let commands = match ScriptCommand::load_script(script_args.file.clone()) {
+                Ok(commands) => commands,
+                Err(err) => {
+                    println!("Error running script - {}", err);
+                    return;
+                }
+            };
+            for command in commands.into_iter() {
+                execute_command(command, scene_event_tx, node_event_tx)
+            }
+        }
     }
 }
