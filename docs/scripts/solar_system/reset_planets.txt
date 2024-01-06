@@ -1,0 +1,2 @@
+script /Users/music/Documents/Repos/node_simulator/docs/scripts/solar_system/remove_planets.txt
+script /Users/music/Documents/Repos/node_simulator/docs/scripts/solar_system/add_planets.txt
