@@ -2,6 +2,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::{self, Duration};
 use std::{io, thread};
 
+use anyhow::bail;
 use clap::Parser;
 
 use node_simulator::graphics::scene_event::{CloseEvent, ToggleSceneEvent};
@@ -9,7 +10,7 @@ use node_simulator::graphics::{self, scene_event, GraphicsInterface};
 use node_simulator::{node, simulation};
 
 use args::CLIArgs;
-use simulation_commands::SimulationCommands;
+use simulation_commands::SimulationCommand;
 
 mod args;
 mod simulation_commands;
@@ -41,7 +42,7 @@ fn run(_default_texture_path: Option<String>, create_display: bool) {
 
     thread::spawn(|| {
         println!("Running node_simulator...");
-        read_input(scene_event_tx, node_event_tx);
+        read_input_from_cli(scene_event_tx, node_event_tx);
     });
     graphics_interface.run(scene_event_rx);
 }
@@ -91,7 +92,7 @@ pub fn run_simulation(
     }
 }
 
-fn read_input(
+fn read_input_from_cli(
     scene_event_tx: mpsc::Sender<scene_event::Event>,
     node_event_tx: mpsc::Sender<node::Event>,
 ) {
@@ -100,35 +101,25 @@ fn read_input(
         io::stdin()
             .read_line(&mut input)
             .expect("Failed to read input");
-        input = input.to_lowercase();
-        if input.is_empty() {
-            continue;
-        }
-        input = input.trim().to_string();
-        // Insert dummy char for command parsing
-        input.insert(0, ' ');
-        input.insert(0, '@');
-        let input = input.split_ascii_whitespace();
 
-        let command: Result<SimulationCommands, clap::error::Error> =
-            SimulationCommands::try_parse_from(input);
+        let command = SimulationCommand::try_from(input);
         match command {
             Ok(command) => execute_command(command, &scene_event_tx, &node_event_tx),
             Err(e) => println!(
                 "{}",
-                SimulationCommands::remove_dummy_char_from_usage_string(e.to_string())
+                SimulationCommand::remove_dummy_char_from_usage_string(e.to_string())
             ),
         }
     }
 }
 
 fn execute_command(
-    simulation_command: SimulationCommands,
+    simulation_command: SimulationCommand,
     scene_event_tx: &mpsc::Sender<scene_event::Event>,
     node_event_tx: &mpsc::Sender<node::Event>,
 ) {
     match &simulation_command.command {
-        simulation_commands::Commands::Add(args) => match &args.command {
+        simulation_commands::Command::Add(args) => match &args.command {
             simulation_commands::add_command::Commands::Node(node_args) => {
                 let add_event = node::AddNodeEvent::try_from(node_args);
                 match add_event {
@@ -137,20 +128,20 @@ fn execute_command(
                 }
             }
         },
-        simulation_commands::Commands::Remove(args) => match &args.command {
+        simulation_commands::Command::Remove(args) => match &args.command {
             simulation_commands::remove_command::Commands::Node(node_args) => {
                 _ = node_event_tx.send(node::Event::from(node::Event::RemoveNode(
                     node::RemoveNodeEvent::from(node_args),
                 )))
             }
         },
-        simulation_commands::Commands::ToggleScene => {
+        simulation_commands::Command::ToggleScene => {
             _ = scene_event_tx.send(scene_event::Event::ToggleScene(ToggleSceneEvent {}))
         }
-        simulation_commands::Commands::Close => {
+        simulation_commands::Command::Close => {
             _ = scene_event_tx.send(scene_event::Event::Close(CloseEvent {}))
         }
-        simulation_commands::Commands::Set(set_args) => match &set_args.command {
+        simulation_commands::Command::Set(set_args) => match &set_args.command {
             simulation_commands::set_command::Commands::Node(node_args) => {
                 let event = match node::event::set_node::SetNodeEvent::try_from(node_args) {
                     Ok(args) => args,
@@ -172,7 +163,7 @@ fn execute_command(
                 )))
             }
         },
-        simulation_commands::Commands::Get(get_args) => match &get_args.command {
+        simulation_commands::Command::Get(get_args) => match &get_args.command {
             simulation_commands::get_command::Commands::Node(get_node_event) => {
                 _ = node_event_tx.send(node::Event::Get(node::event::get::GetEvent::Node(
                     get_node_event.into(),
@@ -185,9 +176,9 @@ fn execute_command(
                 _ = scene_event_tx.send(scene_event::Event::GetFps)
             }
         },
-        simulation_commands::Commands::Step(step_args) => {
+        simulation_commands::Command::Step(step_args) => {
             _ = node_event_tx.send(node::Event::Step(step_args.into()))
         }
-        simulation_commands::Commands::Script(script_args) => todo!(),
+        simulation_commands::Command::Script(script_args) => todo!(),
     }
 }

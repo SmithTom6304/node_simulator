@@ -7,13 +7,13 @@ pub mod step_command;
 
 #[derive(clap::Parser, Debug)]
 #[command(help_template = "Commands:\r\n{subcommands}")]
-pub struct SimulationCommands {
+pub struct SimulationCommand {
     #[command(subcommand)]
-    pub command: Commands,
+    pub command: Command,
 }
 
 #[derive(clap::Subcommand, Debug)]
-pub enum Commands {
+pub enum Command {
     Add(add_command::AddCommand),
     Remove(remove_command::RemoveCommand),
     Set(set_command::SetCommand),
@@ -24,7 +24,28 @@ pub enum Commands {
     Script(script_command::ScriptCommand),
 }
 
-impl SimulationCommands {
+impl TryFrom<String> for SimulationCommand {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let mut value = value.to_lowercase().trim().to_string();
+        // Insert dummy char for command parsing
+        value.insert(0, ' ');
+        value.insert(0, '@');
+
+        use clap::Parser;
+        let command: Result<SimulationCommand, clap::error::Error> =
+            Self::try_parse_from(value.split_whitespace());
+        match command {
+            Ok(command) => Ok(command),
+            Err(e) => Err(SimulationCommand::remove_dummy_char_from_usage_string(
+                e.to_string(),
+            )),
+        }
+    }
+}
+
+impl SimulationCommand {
     pub fn remove_dummy_char_from_usage_string(message: String) -> String {
         message
             .lines()
