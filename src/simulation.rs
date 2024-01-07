@@ -7,7 +7,7 @@ pub struct Simulation {
     pub gravitational_constant: f32,
 }
 
-impl<'a> Simulation {
+impl Simulation {
     pub fn new() -> Simulation {
         let nodes = Vec::new();
         Simulation {
@@ -56,41 +56,28 @@ impl<'a> Simulation {
                 {
                     Some(node) => node,
                     None => {
-                        println!(
-                            "No node with id {} was found",
-                            set_node_event.id.to_string()
-                        );
+                        println!("No node with id {} was found", set_node_event.id);
                         return;
                     }
                 };
 
-                match set_node_event.position {
-                    Some(position) => node.position = position,
-                    None => {}
+                if let Some(position) = set_node_event.position {
+                    node.position = position
                 };
-                match set_node_event.velocity {
-                    Some(velocity) => node.velocity = velocity,
-                    None => {}
+                if let Some(velocity) = set_node_event.velocity {
+                    node.velocity = velocity
                 };
-                match set_node_event.mass {
-                    Some(mass) => node.mass = mass,
-                    None => {}
+                if let Some(mass) = set_node_event.mass {
+                    node.mass = mass
                 };
-                match set_node_event.gravitational_constant_override {
-                    Some(g) => node.gravitational_constant_override = Some(g),
-                    None => {}
+                if let Some(g) = set_node_event.gravitational_constant_override {
+                    node.gravitational_constant_override = Some(g)
                 };
-                match set_node_event.dampen_rate {
-                    Some(dampen_rate) => node.dampen_rate = dampen_rate,
-                    None => {}
+                if let Some(dampen_rate) = set_node_event.dampen_rate {
+                    node.dampen_rate = dampen_rate
                 };
-                match set_node_event.dampen_rate {
-                    Some(dampen_rate) => node.dampen_rate = dampen_rate,
-                    None => {}
-                };
-                match set_node_event.freeze {
-                    Some(freeze) => node.freeze = freeze,
-                    None => {}
+                if let Some(freeze) = set_node_event.freeze {
+                    node.freeze = freeze
                 };
             }
             node::Event::Get(get_event) => get_event.handle(self),
@@ -134,7 +121,7 @@ mod a_simulation {
         });
         let node = node::Node::new(id, position);
 
-        simulation.add_node(node.clone());
+        simulation.add_node(node);
 
         assert_eq!(1, simulation.nodes.len());
         assert_eq!(&node, simulation.nodes.get(0).unwrap());
@@ -151,7 +138,7 @@ mod a_simulation {
         });
         let node = node::Node::new(id, position);
 
-        simulation.add_node(node.clone());
+        simulation.add_node(node);
 
         simulation.remove_node(id);
 
@@ -168,7 +155,7 @@ mod a_simulation {
             y: 0.0,
             z: 0.0,
         });
-        let node_a = node::Node::new(id, position_a.clone());
+        let node_a = node::Node::new(id, position_a);
 
         let id = node::Id(2);
         let position_b = node::Position(cgmath::Point3 {
@@ -176,7 +163,7 @@ mod a_simulation {
             y: 0.0,
             z: 0.0,
         });
-        let node_b = node::Node::new(id, position_b.clone());
+        let node_b = node::Node::new(id, position_b);
 
         simulation.add_node(node_a);
         simulation.add_node(node_b);
