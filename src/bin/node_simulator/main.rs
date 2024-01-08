@@ -2,7 +2,6 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::{self, Duration};
 use std::{io, thread};
 
-use anyhow::bail;
 use clap::Parser;
 
 use node_simulator::graphics::scene_event::{CloseEvent, ToggleSceneEvent};
@@ -69,12 +68,11 @@ pub fn run_simulation(
                 true => target_duration_if_paused,
                 false => get_target_duration(target_tps),
             };
-            match event {
-                Ok(event) => sim.handle_event(event),
-                Err(_) => {}
+            if let Ok(event) = event {
+                sim.handle_event(event)
             }
 
-            if false == sim_is_paused {
+            if !sim_is_paused {
                 sim.step();
             }
         }
@@ -131,8 +129,8 @@ fn execute_command(
         },
         simulation_commands::Command::Remove(args) => match &args.command {
             simulation_commands::remove_command::Commands::Node(node_args) => {
-                _ = node_event_tx.send(node::Event::from(node::Event::RemoveNode(
-                    node::RemoveNodeEvent::from(node_args),
+                _ = node_event_tx.send(node::Event::RemoveNode(node::RemoveNodeEvent::from(
+                    node_args,
                 )))
             }
         },
