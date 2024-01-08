@@ -13,6 +13,8 @@ impl ScriptCommand {
         let lines = contents.lines();
         let commands = lines
             .into_iter()
+            .map(|line| line.trim())
+            .filter(|line| !line.is_empty())
             .map(|line| SimulationCommand::try_from(line.to_string()))
             .collect::<Result<Vec<_>, _>>();
         match commands {
