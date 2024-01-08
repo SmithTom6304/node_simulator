@@ -14,6 +14,7 @@ impl ScriptCommand {
         let commands = lines
             .into_iter()
             .map(|line| line.trim())
+            .map(Self::remove_comments)
             .filter(|line| !line.is_empty())
             .map(|line| SimulationCommand::try_from(line.to_string()))
             .collect::<Result<Vec<_>, _>>();
@@ -21,5 +22,12 @@ impl ScriptCommand {
             Ok(commands) => Ok(commands),
             Err(err) => anyhow::bail!(err),
         }
+    }
+
+    fn remove_comments(line: &str) -> &str {
+        if !line.contains("//") {
+            return line;
+        }
+        return line.split("//").next().unwrap_or_default();
     }
 }
