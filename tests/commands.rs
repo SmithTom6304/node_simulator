@@ -9,6 +9,7 @@ Commands:
   toggle-scene  
   close         
   step          
+  script        
   help          Print this message or the help of the given subcommand(s)
 
 "#;
