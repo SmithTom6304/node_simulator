@@ -100,6 +100,9 @@ fn read_input_from_cli(
         io::stdin()
             .read_line(&mut input)
             .expect("Failed to read input");
+        if input.is_empty() {
+            continue;
+        }
 
         let command = SimulationCommand::try_from(input);
         match command {

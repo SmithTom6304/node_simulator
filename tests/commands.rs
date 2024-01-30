@@ -22,7 +22,7 @@ const EXPECTED_REMOVE_NODE_COMMAND_OUTPUT: &str = r#"Running node_simulator...
 Error displaying node information for node with id 1 - no node with that id exists
 "#;
 
-//#[test]
+#[test]
 fn can_execute_help_command() {
     let mut process = common::Binary::get();
     let std_in = process.stdin.take().expect("Child had no stdin");
@@ -36,7 +36,7 @@ fn can_execute_help_command() {
     common::Binary::kill(process);
 }
 
-//#[test]
+#[test]
 fn can_execute_add_node_command() {
     let mut process = common::Binary::get();
     let std_in = process.stdin.take().expect("Child had no stdin");
@@ -55,7 +55,7 @@ fn can_execute_add_node_command() {
     common::Binary::kill(process);
 }
 
-//#[test]
+#[test]
 fn can_execute_remove_node_command() {
     let mut process = common::Binary::get();
     let std_in = process.stdin.take().expect("Child had no stdin");
