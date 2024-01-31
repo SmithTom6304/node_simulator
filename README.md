@@ -1,8 +1,6 @@
 # node_simulator
 
-Runs node-based simulations with graphical interface.
-
-![Example of placing two nodes next to eachother](./docs/gifs/v0.2.0_example.gif)
+Run node-based simulations with a graphical interface.
 
 ## Status
 ![Build](https://github.com/SmithTom6304/node_simulator/actions/workflows/build.yml/badge.svg)
@@ -34,3 +32,13 @@ Get the nodes new position.
 ```get node --id 1 --position```
 
 Use `--help` for more information.
+
+## Examples
+See the `./example_scripts` directory for some example scripts, that can be run using the `script` command.
+
+![Planets example](./docs/gifs/planets.gif)
+A satellite node orbiting a central body.
+
+
+![Example of placing two nodes next to eachother](./docs/gifs/v0.2.0_example.gif)
+Two nodes pushing eachother apart.
