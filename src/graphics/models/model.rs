@@ -10,6 +10,7 @@ use super::{material, mesh};
 
 pub struct Model {
     pub id: ModelId,
+    pub path: String,
     pub meshes: Vec<mesh::Mesh>,
     pub materials: Vec<material::Material>,
 }
@@ -106,8 +107,11 @@ pub async fn load_model(descriptor: LoadModelDescriptor<'_>, id: ModelId) -> any
         })
         .collect::<Vec<_>>();
 
+    let path = descriptor.file_name.to_string();
+
     Ok(Model {
         meshes,
+        path,
         materials,
         id,
     })
