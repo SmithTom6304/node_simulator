@@ -18,5 +18,6 @@ pub trait Scene {
         clear_colour: wgpu::Color,
         simulation: Option<&simulation::Simulation>,
     ) -> Result<(), wgpu::SurfaceError>;
+    fn load_model(&mut self, path: &str);
     fn as_any(&self) -> &dyn Any;
 }

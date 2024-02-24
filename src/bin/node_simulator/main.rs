@@ -193,5 +193,10 @@ fn execute_command(
                 execute_command(command, scene_event_tx, node_event_tx)
             }
         }
+        simulation_commands::Command::Load(load_args) => match &load_args.command {
+            simulation_commands::load_command::Commands::Model(model_args) => {
+                _ = scene_event_tx.send(scene_event::Event::LoadModel(model_args.into()))
+            }
+        },
     }
 }

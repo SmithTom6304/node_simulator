@@ -1,5 +1,6 @@
 pub mod add_command;
 pub mod get_command;
+pub mod load_command;
 pub mod remove_command;
 pub mod script_command;
 pub mod set_command;
@@ -22,6 +23,7 @@ pub enum Command {
     Close,
     Step(step_command::StepCommand),
     Script(script_command::ScriptCommand),
+    Load(load_command::LoadCommand),
 }
 
 impl TryFrom<String> for SimulationCommand {

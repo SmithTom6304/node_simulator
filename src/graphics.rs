@@ -211,6 +211,9 @@ impl GraphicsInterface {
             }
             scene_event::Event::SetTargetFps(event) => self.set_target_fps(event.target_fps),
             scene_event::Event::GetFps => println!("fps: {}", self.target_fps),
+            scene_event::Event::LoadModel(load_model_event) => {
+                self.scene.load_model(&load_model_event.path)
+            }
         };
         EventStatus::Handled
     }

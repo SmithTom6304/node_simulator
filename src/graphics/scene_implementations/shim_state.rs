@@ -26,4 +26,8 @@ impl Scene for ShimState {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
+
+    fn load_model(&mut self, path: &str) {
+        println!("Could not load model - graphics feature is disabled")
+    }
 }

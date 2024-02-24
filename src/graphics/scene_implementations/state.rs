@@ -28,11 +28,10 @@ pub struct State {
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
     models: model_collection::ModelCollection,
-    node_model_id: model::ModelId,
     depth_texture: texture::Texture,
 }
 
-impl super::Scene for State {
+impl<'state> super::Scene for State {
     fn new(context: &sdl2::Sdl, default_texture_path: Option<String>) -> Self {
         // The instance is a handle to our GPU
         // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
@@ -232,14 +231,7 @@ impl super::Scene for State {
         });
 
         let mut models = model_collection::ModelCollection::new();
-        let cube_descriptor = model::LoadModelDescriptor::new("cube.obj", &device, &queue);
-        let load_model = |id| {
-            let model = pollster::block_on(model::load_model(cube_descriptor, id));
-            let model = model.unwrap();
-            return model;
-        };
-        let cube_id = models.add(load_model);
-        let node_model_id = cube_id;
+        pollster::block_on(models.load("cube.obj", &device, &queue));
 
         Self {
             _window: window,
@@ -259,7 +251,6 @@ impl super::Scene for State {
             camera_bind_group,
             models,
             depth_texture,
-            node_model_id,
         }
     }
 
@@ -320,8 +311,9 @@ impl super::Scene for State {
                 label: Some("Render Encoder"),
             });
 
+        let node_model = self.models.find_by_path("cube.obj").unwrap();
         let mut node_instance_collection =
-            instance_collection::InstanceCollection::new(self.node_model_id);
+            instance_collection::InstanceCollection::new(node_model.id);
 
         if let Some(simulation) = simulation {
             for node in simulation.nodes.iter() {
@@ -371,12 +363,11 @@ impl super::Scene for State {
             render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
 
             use model::DrawModel;
-            let model = self.models.find(self.node_model_id);
-            let model = model.unwrap();
+            let model = self.models.find_by_path("cube.obj").unwrap();
             let range = &instance_data
                 .indexes
                 .iter()
-                .find(|value| value.0 == self.node_model_id)
+                .find(|value| value.0 == model.id)
                 .unwrap()
                 .1;
             let mesh = &model.meshes[0];
@@ -403,5 +394,9 @@ impl super::Scene for State {
 
     fn as_any(&self) -> &dyn std::any::Any {
         self
+    }
+
+    fn load_model(&mut self, path: &str) {
+        pollster::block_on(self.models.load(path, &self.device, &self.queue));
     }
 }
