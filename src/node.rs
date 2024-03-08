@@ -22,11 +22,30 @@ pub struct Node {
     /// Stops the node from moving when undergoing a force. This node will still exert force on other
     /// nodes - this can be disabled via the gravitational_constant_override
     pub freeze: bool,
+    #[cfg(feature = "wgpu")]
+    pub model_id: Option<crate::graphics::ModelId>,
 }
 
 impl Node {
     const MIN_VELOCITY: f32 = 0.0001;
 
+    #[cfg(feature = "wgpu")]
+    pub fn new(id: Id, position: Position) -> Self {
+        use crate::graphics::ModelId;
+
+        Node {
+            id,
+            position,
+            velocity: force::Force(cgmath::Vector3::<f32>::new(0.0, 0.0, 0.0)),
+            mass: 1.0,
+            gravitational_constant_override: None,
+            dampen_rate: 0.1,
+            freeze: false,
+            model_id: Some(ModelId(0)),
+        }
+    }
+
+    #[cfg(not(feature = "wgpu"))]
     pub fn new(id: Id, position: Position) -> Self {
         Node {
             id,

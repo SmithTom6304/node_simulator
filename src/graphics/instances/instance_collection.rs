@@ -30,7 +30,11 @@ impl InstanceCollection {
         self.instances.iter()
     }
 
-    pub fn get_instance_render_data(collections: &Vec<InstanceCollection>) -> InstanceRenderData {
+    pub fn clear(&mut self) {
+        self.instances.clear()
+    }
+
+    pub fn get_instance_render_data(collections: &Vec<&InstanceCollection>) -> InstanceRenderData {
         let mut instance_indexes: Vec<(model::ModelId, Range<u32>)> = vec![];
         collections.iter().for_each(|instances| {
             let index = match instance_indexes.last() {

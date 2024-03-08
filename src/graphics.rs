@@ -14,6 +14,8 @@ mod camera;
 mod instances;
 #[cfg(feature = "wgpu")]
 mod models;
+#[cfg(feature = "wgpu")]
+pub use models::model::ModelId;
 pub mod scene_event;
 mod scene_implementations;
 #[cfg(feature = "wgpu")]
@@ -130,7 +132,7 @@ impl GraphicsInterface {
 
             render_scene(simulation.as_ref());
 
-            self.scene.update();
+            self.scene.update(simulation.as_ref());
 
             let duration = time::Instant::now().duration_since(start_time);
             let target_duration = target_duration(self.target_fps);

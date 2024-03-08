@@ -1,4 +1,6 @@
 use crate::graphics;
+use crate::graphics::instances::instance_collection::InstanceCollection;
+use crate::node::Node;
 use crate::simulation;
 use bytemuck;
 use graphics::camera;
@@ -28,6 +30,7 @@ pub struct State {
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
     models: model_collection::ModelCollection,
+    instance_collections: Vec<instance_collection::InstanceCollection>,
     depth_texture: texture::Texture,
 }
 
@@ -232,6 +235,9 @@ impl<'state> super::Scene for State {
 
         let mut models = model_collection::ModelCollection::new();
         pollster::block_on(models.load("cube.obj", &device, &queue));
+        let model_id = models.find_by_path("cube.obj").unwrap().id;
+
+        let instance_collections = vec![InstanceCollection::new(model_id)];
 
         Self {
             _window: window,
@@ -251,6 +257,7 @@ impl<'state> super::Scene for State {
             camera_bind_group,
             models,
             depth_texture,
+            instance_collections,
         }
     }
 
@@ -285,7 +292,7 @@ impl<'state> super::Scene for State {
         false
     }
 
-    fn update(&mut self) {
+    fn update(&mut self, simulation: Option<&simulation::Simulation>) {
         self.camera_controller.update_camera(&mut self.camera);
         self.camera_uniform.update_view_proj(&self.camera);
         self.queue.write_buffer(
@@ -293,6 +300,8 @@ impl<'state> super::Scene for State {
             0,
             bytemuck::cast_slice(&[self.camera_uniform]),
         );
+
+        self.update_instances(simulation.map(|sim| &sim.nodes));
     }
 
     fn render(
@@ -311,79 +320,73 @@ impl<'state> super::Scene for State {
                 label: Some("Render Encoder"),
             });
 
-        let node_model = self.models.find_by_path("cube.obj").unwrap();
-        let mut node_instance_collection =
-            instance_collection::InstanceCollection::new(node_model.id);
+        self.instance_collections.iter().for_each(|collection| {
+            let instance_data =
+                instance_collection::InstanceCollection::get_instance_render_data(&vec![
+                    collection,
+                ]);
+            let instance_buffer =
+                self.device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: Some("Instance Buffer"),
+                        contents: bytemuck::cast_slice(&instance_data.data),
+                        usage: wgpu::BufferUsages::VERTEX,
+                    });
 
-        if let Some(simulation) = simulation {
-            for node in simulation.nodes.iter() {
-                node_instance_collection.add(instance::Instance {
-                    position: node.position.into(),
-                    rotation: cgmath::Quaternion::zero(),
-                })
-            }
-        }
-
-        let instance_data =
-            instance_collection::InstanceCollection::get_instance_render_data(&vec![
-                node_instance_collection,
-            ]);
-        let instance_buffer = self
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Instance Buffer"),
-                contents: bytemuck::cast_slice(&instance_data.data),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(clear_colour),
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &self.depth_texture.view,
-                    depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(1.0),
-                        store: true,
+            {
+                let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Render Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(clear_colour),
+                            store: true,
+                        },
+                    })],
+                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                        view: &self.depth_texture.view,
+                        depth_ops: Some(wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(1.0),
+                            store: true,
+                        }),
+                        stencil_ops: None,
                     }),
-                    stencil_ops: None,
-                }),
-            });
+                });
 
-            render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
+                render_pass.set_pipeline(&self.render_pipeline);
+                render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
 
-            render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
+                render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
 
-            use model::DrawModel;
-            let model = self.models.find_by_path("cube.obj").unwrap();
-            let range = &instance_data
-                .indexes
-                .iter()
-                .find(|value| value.0 == model.id)
-                .unwrap()
-                .1;
-            let mesh = &model.meshes[0];
+                use model::DrawModel;
+                let model = self.models.find_by_id(&collection.model).unwrap();
+                let range = &instance_data
+                    .indexes
+                    .iter()
+                    .find(|value| value.0 == model.id)
+                    .unwrap()
+                    .1;
+                let mesh = &model.meshes[0];
 
-            let material =
-                if self.use_default_material == false && model.materials.is_empty() == false {
-                    &model.materials[0]
-                } else {
-                    &self
-                        .default_material
-                        .as_ref()
-                        .unwrap_or(&self.fallback_material)
-                };
+                let material =
+                    if self.use_default_material == false && model.materials.is_empty() == false {
+                        &model.materials[0]
+                    } else {
+                        &self
+                            .default_material
+                            .as_ref()
+                            .unwrap_or(&self.fallback_material)
+                    };
 
-            render_pass.draw_mesh_instanced(mesh, material, range.clone(), &self.camera_bind_group);
-        }
+                render_pass.draw_mesh_instanced(
+                    mesh,
+                    material,
+                    range.clone(),
+                    &self.camera_bind_group,
+                );
+            }
+        });
 
         // submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -398,5 +401,43 @@ impl<'state> super::Scene for State {
 
     fn load_model(&mut self, path: &str) {
         pollster::block_on(self.models.load(path, &self.device, &self.queue));
+    }
+}
+
+impl State {
+    fn update_instances(&mut self, nodes: Option<&Vec<Node>>) {
+        self.instance_collections
+            .iter_mut()
+            .for_each(|col| col.clear());
+
+        if let Some(nodes) = nodes {
+            nodes.iter().for_each(|node| match node.model_id {
+                None => (),
+                Some(id) => {
+                    let collection = self
+                        .instance_collections
+                        .iter_mut()
+                        .find(|col| col.model == id);
+                    match collection {
+                        Some(collection) => collection.add(instance::Instance {
+                            position: node.position.into(),
+                            rotation: cgmath::Quaternion::zero(),
+                        }),
+                        None => {
+                            let mut new_collection =
+                                instance_collection::InstanceCollection::new(id);
+                            new_collection.add(instance::Instance {
+                                position: node.position.into(),
+                                rotation: cgmath::Quaternion::zero(),
+                            });
+                            self.instance_collections.push(new_collection);
+                        }
+                    }
+                }
+            });
+        }
+
+        self.instance_collections
+            .retain(|col| col.iter().count() > 0);
     }
 }

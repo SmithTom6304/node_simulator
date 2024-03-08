@@ -197,6 +197,7 @@ mod a_simulation {
             gravitational_constant_override: None,
             dampen_rate: 0.0,
             freeze: false,
+            model_id: None,
         };
 
         simulation.add_node(node_a);

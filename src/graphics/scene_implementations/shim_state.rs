@@ -15,7 +15,7 @@ impl Scene for ShimState {
     fn input(&mut self, _event: &sdl2::event::Event) -> bool {
         false
     }
-    fn update(&mut self) {}
+    fn update(&mut self, simulation: Option<&simulation::Simulation>) {}
     fn render(
         &mut self,
         _clear_colour: wgpu::Color,

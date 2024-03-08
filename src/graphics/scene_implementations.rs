@@ -12,7 +12,7 @@ pub trait Scene {
         Self: Sized;
     fn resize(&mut self, new_size: (u32, u32));
     fn input(&mut self, event: &sdl2::event::Event) -> bool;
-    fn update(&mut self);
+    fn update(&mut self, simulation: Option<&simulation::Simulation>);
     fn render(
         &mut self,
         clear_colour: wgpu::Color,
