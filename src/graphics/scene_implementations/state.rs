@@ -320,11 +320,11 @@ impl<'state> super::Scene for State {
                 label: Some("Render Encoder"),
             });
 
-        self.instance_collections.iter().for_each(|collection| {
-            let instance_data =
-                instance_collection::InstanceCollection::get_instance_render_data(&vec![
-                    collection,
-                ]);
+        {
+            let instance_data = instance_collection::InstanceCollection::get_instance_render_data(
+                &self.instance_collections.iter().collect(),
+            );
+
             let instance_buffer =
                 self.device
                     .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -333,34 +333,34 @@ impl<'state> super::Scene for State {
                         usage: wgpu::BufferUsages::VERTEX,
                     });
 
-            {
-                let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("Render Pass"),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &view,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(clear_colour),
-                            store: true,
-                        },
-                    })],
-                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                        view: &self.depth_texture.view,
-                        depth_ops: Some(wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(1.0),
-                            store: true,
-                        }),
-                        stencil_ops: None,
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(clear_colour),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &self.depth_texture.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: true,
                     }),
-                });
+                    stencil_ops: None,
+                }),
+            });
 
-                render_pass.set_pipeline(&self.render_pipeline);
-                render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
+            render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
 
-                render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
+            render_pass.set_vertex_buffer(1, instance_buffer.slice(..));
 
-                use model::DrawModel;
-                let model = self.models.find_by_id(&collection.model).unwrap();
+            use model::DrawModel;
+            instance_data.indexes.iter().for_each(|index| {
+                let model = self.models.find_by_id(&index.0).unwrap();
                 let range = &instance_data
                     .indexes
                     .iter()
@@ -369,15 +369,13 @@ impl<'state> super::Scene for State {
                     .1;
                 let mesh = &model.meshes[0];
 
-                let material =
-                    if self.use_default_material == false && model.materials.is_empty() == false {
-                        &model.materials[0]
-                    } else {
-                        &self
-                            .default_material
-                            .as_ref()
-                            .unwrap_or(&self.fallback_material)
-                    };
+                let material = if !self.use_default_material && !model.materials.is_empty() {
+                    &model.materials[0]
+                } else {
+                    self.default_material
+                        .as_ref()
+                        .unwrap_or(&self.fallback_material)
+                };
 
                 render_pass.draw_mesh_instanced(
                     mesh,
@@ -385,9 +383,8 @@ impl<'state> super::Scene for State {
                     range.clone(),
                     &self.camera_bind_group,
                 );
-            }
-        });
-
+            });
+        }
         // submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));
 
