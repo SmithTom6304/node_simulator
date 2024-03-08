@@ -8,4 +8,5 @@ pub struct SetNodeEvent {
     pub gravitational_constant_override: Option<f32>,
     pub dampen_rate: Option<f32>,
     pub freeze: Option<bool>,
+    pub model: Option<u32>,
 }

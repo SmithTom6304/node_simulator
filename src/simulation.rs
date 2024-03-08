@@ -1,3 +1,5 @@
+use crate::graphics::ModelId;
+
 use super::node;
 
 #[derive(Clone)]
@@ -78,6 +80,9 @@ impl Simulation {
                 };
                 if let Some(freeze) = set_node_event.freeze {
                     node.freeze = freeze
+                };
+                if let Some(model) = set_node_event.model {
+                    node.model_id = Some(ModelId(model));
                 };
             }
             node::Event::Get(get_event) => get_event.handle(self),

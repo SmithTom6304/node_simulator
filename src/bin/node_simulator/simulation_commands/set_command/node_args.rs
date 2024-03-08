@@ -16,6 +16,8 @@ pub struct NodeArgs {
     dampen_rate: Option<f32>,
     #[arg(long)]
     freeze: Option<bool>,
+    #[arg(long)]
+    model: Option<u32>,
 }
 
 impl TryFrom<&NodeArgs> for set_node::SetNodeEvent {
@@ -41,6 +43,7 @@ impl TryFrom<&NodeArgs> for set_node::SetNodeEvent {
         let gravitational_constant_override = value.gravitational_constant_override;
         let dampen_rate = value.dampen_rate;
         let freeze = value.freeze;
+        let model = value.model;
 
         Ok(Self {
             id,
@@ -50,6 +53,7 @@ impl TryFrom<&NodeArgs> for set_node::SetNodeEvent {
             gravitational_constant_override,
             dampen_rate,
             freeze,
+            model,
         })
     }
 }
